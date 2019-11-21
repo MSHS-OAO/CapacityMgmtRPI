@@ -25,3 +25,5 @@ data[ , c("AdmitYr", "AdmitMo")] <- c(year(data$AdmitDate), month(data$AdmitDate
 data[ , c("DischYr", "DischMo", "DischHr", "DischDOW")] <- c(year(data$DischDateTime), month(data$DischDateTim), hour(data$DischDateTime), wday(data$DischDateTime, label = TRUE, abbr = TRUE))
 
 #test line
+
+# test line 2

@@ -59,3 +59,17 @@ data2 <- data[data$Include == TRUE, ]
 #Analysis for Jan-Sep 2019 benchmark
 data2$BaselineDate <- ifelse(data2$DischYr == 2019 & data2$DischMo <= 9, TRUE, FALSE)
 
+weeknum <- function(x) {
+  yr <<- year(x)
+  new_yr <<- as.Date(paste0("1/1/", yr), format = "%m/%d/%Y")
+  new_yr_wkday <<- wday(new_yr, label = FALSE)
+  new_yr_sat <<- new_yr + (7 - new_yr_wkday)
+  elapsed_days <<- as.numeric(x - new_yr_sat)
+  week_number <<- ifelse(elapsed_days < 0, 1, as.integer(elapsed_days/7)+2)
+  week_number
+}
+
+data2$Week_Num <- weeknum(data2$DischDate)
+
+test_df <- data2[ , c("Encounter.No", "DischDate", "Week_Num")]
+export_test <- write.csv(test_df, ".\\Test Weekday Function.csv")

@@ -95,3 +95,5 @@ Disch_DOW2 <- cast(Disch_DOW, Site ~ DischDOW, value = "Encounter.No")
 Avg_Disch_DOW <- aggregate(Encounter.No ~ Site + DischDOW, data = Disch_by_Date, FUN = mean, na.rm = TRUE)
 Avg_Disch_DOW2 <- cast(Avg_Disch_DOW, Site ~ DischDOW, value = "Encounter.No")
 Avg_Disch_DOW2[ , 2:ncol(Avg_Disch_DOW2)] <- round(Avg_Disch_DOW2[ , 2:ncol(Avg_Disch_DOW2)], 0)
+
+#Test line

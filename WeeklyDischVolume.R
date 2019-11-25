@@ -80,20 +80,17 @@ weeknum <- function(x) {
 data2$Week_Num <- weeknum(data2$DischDate)
 data2$Weekend <- ifelse(data2$DischDOW == "Sat" | data2$DischDOW == "Sun" | data2$DischDOW == "Mon", TRUE, FALSE)
 
-test1 <- aggregate(data2$DischYr, by = list(Site = data2$Site, DOW = data2$DischDOW), FUN = NROW) #, na.rm = TRUE)
-test2 <- aggregate(DischYr ~ Site + DischDOW, data = data2, FUN = NROW) #, na.rm = TRUE)
-colnames(test1)[ncol(test1)] <- "Total Discharges"
-test3 <- cast(test1, Site ~ DOW, sum, value = "Total Discharges")
+# Baseline Analysis for Jan-Sep 2019---------------------------------
+baseline <- data2[data2$DischMo <= 9, ]
 
-# Baseline Analysis ---------------------------------
-# Baseline analysis for Jan-Sep 2019
-baseline_data <- data2[data2$DischMo <= 9, ]
+serviceline_daily <- aggregate(Encounter.No ~ Site + DischDate + DischDOW + ServiceLine, data = baseline, FUN = NROW)
+hosp_daily <- aggregate(Encounter.No ~ Site + DischDate + DischDOW, data = baseline, FUN = NROW)
+total_disch_dow <- aggregate(Encounter.No ~ Site + DischDOW, data = hosp_daily, FUN = sum)
+disch_dow_clean <- cast(Disch_DOW, Site ~ DischDOW, value = "Encounter.No")
+avg_disch_dow <- aggregate(Encounter.No ~ Site + DischDOW, data = hosp_daily, FUN = mean, na.rm = TRUE)
+avg_disch_dow_clean <- cast(avg_disch_dow, Site ~ DischDOW, value = "Encounter.No")
+avg_stats <- cbind(avg_disch_dow_clean, WeekendTotal = avg_disch_dow_clean$Sat + avg_disch_dow_clean$Sun + avg_disch_dow_clean$Mon, 
+                   Target = (avg_disch_dow_clean[ , "Mon"]*0.1))
+avg_dow_print <- format(avg_disch_dow_clean, digits = 0, justify = "centre")
+avg_stats_print <- format(avg_stats, digits = 0, justify = "centre")
 
-Disch_by_Date <- aggregate(Encounter.No ~ Site + DischDate + DischDOW, data = baseline_data, FUN = NROW)
-Disch_DOW <- aggregate(Encounter.No ~ Site + DischDOW, data = Disch_by_Date, FUN = sum)
-Disch_DOW2 <- cast(Disch_DOW, Site ~ DischDOW, value = "Encounter.No")
-Avg_Disch_DOW <- aggregate(Encounter.No ~ Site + DischDOW, data = Disch_by_Date, FUN = mean, na.rm = TRUE)
-Avg_Disch_DOW2 <- cast(Avg_Disch_DOW, Site ~ DischDOW, value = "Encounter.No")
-Avg_Disch_DOW2[ , 2:ncol(Avg_Disch_DOW2)] <- round(Avg_Disch_DOW2[ , 2:ncol(Avg_Disch_DOW2)], 0)
-
-#Test line

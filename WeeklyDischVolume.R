@@ -1,10 +1,10 @@
-# Install and load necessary packages --------------------
-# install.packages("readxl")
+#Install and load necessary packages --------------------
+#install.packages("readxl")
 #install.packages("writexl")
-# install.packages("ggplot2")
-# install.packages("lubridate")
-# install.packages("dplyr")
-# install.packages("reshape")
+#install.packages("ggplot2")
+#install.packages("lubridate")
+#install.packages("dplyr")
+#install.packages("reshape")
 
 #Analysis for weekend discharge tracking
 library(readxl)
@@ -117,6 +117,7 @@ weekend_rpi_tbl <- weekend_rpi_tbl[order(factor(weekend_rpi_tbl$Site, levels = s
 rownames(weekend_rpi_tbl) <- 1:nrow(weekend_rpi_tbl)
 weekend_rpi_tracker <- merge(avg_stats[ , c("Site", "WeekendTotal", "TargetTotal")], weekend_rpi_tbl,
                              by.x = "Site", by.y = "Site")
+weekend_rpi_tracker <- weekend_rpi_tracker[order(factor(weekend_rpi_tracker$Site, levels = site_order)), ]
 weekend_rpi_tracker_print <- format(weekend_rpi_tracker, digits = 0)
 
 # Export key data to spreadsheet----------------------------------------
@@ -130,14 +131,22 @@ weekend_rpi_tracker_print <- format(weekend_rpi_tracker, digits = 0)
 # 
 # write_xlsx(export_list, "Baseline Analysis Automated 2019-11-26 v1.xlsx")
 
-# Plot data -------------------------------------------
-#Plot discharges by week for all sites
-ggplot(data = weekend_totals) +
-  geom_line(aes(x = Week_Num, y = TotalDisch, color = Site))
+# # Plot data -------------------------------------------
+# #Plot discharges by week for all sites
+# ggplot(data = weekend_totals) +
+#   geom_line(aes(x = Week_Num, y = TotalDisch, color = Site))
+# 
+# #Plot discharges by week for MSBI
+# ggplot(data = weekend_totals_site) + 
+#   geom_line(aes(x = Week_Num, y = MSBI))# +
+#   # geom_point(color = "red", size = 4)
 
-#Plot discharges by week for MSBI
-ggplot(data = weekend_totals_site) + 
-  geom_line(aes(x = Week_Num, y = MSBI))# +
-  # geom_point(color = "red", size = 4)
+# # Compare volume differences
+# msw_11022019 <- data2[data2$Site == "MSW" & data2$Week_Num == 45 & data2$Weekend == TRUE, ]
+# a <- as.data.frame(msw_11022019$Encounter.No)
+# write_xlsx(a, "Compare MSW 2019-11-02 Encounter.xlsx")
+msh_12022019 <- data2[data2$Site == "MSH" & data2$Week_Num == 45 & data2$Weekend == TRUE, ]
+msh_12022019_mrn <- msh_12022019[ , c("Encounter.No", "Msmrn")]
+write_xlsx(msh_12022019_mrn, "Compare MSH Discharges Wk of 11022019.xlsx")
 
-
+write_xlsx(weekend_rpi_tracker, "Weekly Summary 12022019.xlsx")

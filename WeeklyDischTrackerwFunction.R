@@ -89,7 +89,49 @@ preprocess <- function(raw_df, incl_df_as_char) {
   
 }
 
-
+# Preprocess baseline data and updated weekly datasets -----------------------------
 preprocess(data_base, "data2_base")
 preprocess(data_update, "data2_update")
 
+# Aggregate and format baseline data from Jan-Sep 2019 for future use --------------------------------
+baseline <- data2_base[data2_base$DischMo <= 9, ]
+
+serviceline_daily <- aggregate(Encounter.No ~ Site + DischDate + DischDOW + ServiceLine, data = baseline, FUN = NROW)
+hosp_daily <- aggregate(Encounter.No ~ Site + DischDate + DischDOW, data = baseline, FUN = NROW)
+total_disch_dow <- aggregate(Encounter.No ~ Site + DischDOW, data = hosp_daily, FUN = sum)
+total_disch_dow_tbl <- cast(total_disch_dow, Site ~ DischDOW, value = "Encounter.No")
+total_disch_dow_tbl <- total_disch_dow_tbl[order(factor(total_disch_dow_tbl$Site, levels = site_order)), ]
+rownames(total_disch_dow_tbl) <- 1:nrow(total_disch_dow_tbl)
+avg_disch_dow <- aggregate(Encounter.No ~ Site + DischDOW, data = hosp_daily, FUN = mean, na.rm = TRUE)
+avg_disch_dow_tbl <- cast(avg_disch_dow, Site ~ DischDOW, value = "Encounter.No")
+avg_disch_dow_tbl <- avg_disch_dow_tbl[order(factor(avg_disch_dow_tbl$Site, levels = site_order)), ]
+rownames(avg_disch_dow_tbl) <- 1:nrow(avg_disch_dow_tbl)
+
+avg_stats <- cbind(avg_disch_dow_tbl, 
+                   WeekendTotal = avg_disch_dow_tbl$Sat + avg_disch_dow_tbl$Sun + avg_disch_dow_tbl$Mon, 
+                   TargetDelta = (avg_disch_dow_tbl[ , "Mon"]*0.1))
+avg_stats$TargetTotal = round(avg_stats$WeekendTotal, 0) + round(avg_stats$TargetDelta, 0)
+avg_dow_print <- format(avg_disch_dow_tbl, digits = 0, justify = "centre")
+avg_stats_print <- format(avg_stats, digits = 0, justify = "centre")
+
+baseline_target <- avg_stats[ , c("Site", "WeekendTotal", "TargetDelta", "TargetTotal")]
+colnames(baseline_target) <- c("Site", "Weekend Baseline", "Target Change", "Weekend Target")
+
+# Aggregate, format, and track discharges by week since RPI began ----------------
+weekend_totals <- as.data.frame(data2_update[data2_update$Weekend == TRUE, ] %>%
+                                  group_by(Site, Week_Num) %>%
+                                  summarize(Sat = min(DischDate), Mon = max(DischDate), TotalDisch = n()))
+
+weekend_totals$WeekOf <- paste0(format(weekend_totals$Sat, "%m/%d/%y"), "-", format(weekend_totals$Mon, "%m/%d/%y"))
+weekend_totals$PostRPI <- weekend_totals$Sat >= rpi_start
+weekend_totals_site <- cast(weekend_totals, Week_Num + WeekOf + Sat + PostRPI ~ Site, value = "TotalDisch")
+weekend_rpi_tbl <- cast(weekend_totals[weekend_totals$PostRPI == TRUE, ], Site ~ WeekOf, value = "TotalDisch")
+weekend_rpi_tbl <- weekend_rpi_tbl[order(factor(weekend_rpi_tbl$Site, levels = site_order)), ]
+rownames(weekend_rpi_tbl) <- 1:nrow(weekend_rpi_tbl)
+weekend_rpi_tracker <- merge(baseline_target[ , c("Site", "Weekend Baseline", "Weekend Target")], weekend_rpi_tbl,
+                             by.x = "Site", by.y = "Site")
+weekend_rpi_tracker <- weekend_rpi_tracker[order(factor(weekend_rpi_tracker$Site, levels = site_order)), ]
+weekend_rpi_tracker_print <- format(weekend_rpi_tracker, digits = 0)
+
+write_xlsx(weekend_rpi_tracker_print, path = paste0("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Outputs",
+                                                    "\\Weekend Discharge RPI Tracker ", Sys.Date(), ".xlsx"))

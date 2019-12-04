@@ -18,7 +18,8 @@ library(reshape)
 getwd()
 setwd("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Discharge Billing Data")
 
-raw <- read.csv(choose.files(), header = TRUE, na.strings = c("", "NA"))
+raw_base <- read.csv("Crosstab_Discharges_YTD_Test 2019-11-22.csv", header = TRUE, na.strings = c("", "NA"))
+raw_update <- read.csv(choose.files(caption = "Select Most Recent Billing Data"), header = TRUE, na.strings = c("", "NA"))
 
 # Reference files and constants ----------------------------------------
 ref_file <- "Analysis Reference 2019-11-22.xlsx"
@@ -30,44 +31,44 @@ service_line_dict <- read_excel(ref_file, sheet = "ServiceLines")
 site_order <- c("MSH", "MSQ", "MSBI", "MSB", "MSW", "MSSL")
 rpi_start <- as.Date("10/26/2019", "%m/%d/%Y")
 
-# Format and preprocess raw data in new dataframe called "data" ------------------------
-data <- raw
+# Format and preprocess baseline raw data in new dataframe called "data_base" and use for baseline and target calculations ------------------------
+data_base <- raw_base
 # Format admit and discharge dates and pull out year, month, DOW, etc.
-data$AdmitDate <- as.Date(data$Admit.Dt.Src, "%m/%d/%Y")
-data$DischDate <- as.Date(data$Dsch.Dt.Src, "%m/%d/%Y")
-data$DischDateTime <- as.POSIXct(as.character(paste(data$Dsch.Dt.Src, data$Dsch.Time.Src)),  tz = "", format = "%m/%d/%Y %H:%M")
-data[ , c("AdmitYr", "AdmitMo")] <- c(year(data$AdmitDate), month(data$AdmitDate))
-data[ , c("DischYr", "DischMo", "DischHr")] <- c(year(data$DischDate), month(data$DischDate), hour(data$DischDateTime))
-data$DischDOW <- wday(data$DischDate, label = TRUE, abbr = TRUE)
+data_base$AdmitDate <- as.Date(data_base$Admit.Dt.Src, "%m/%d/%Y")
+data_base$DischDate <- as.Date(data_base$Dsch.Dt.Src, "%m/%d/%Y")
+data_base$DischDateTime <- as.POSIXct(as.character(paste(data_base$Dsch.Dt.Src, data_base$Dsch.Time.Src)),  tz = "", format = "%m/%d/%Y %H:%M")
+data_base[ , c("AdmitYr", "AdmitMo")] <- c(year(data_base$AdmitDate), month(data_base$AdmitDate))
+data_base[ , c("DischYr", "DischMo", "DischHr")] <- c(year(data_base$DischDate), month(data_base$DischDate), hour(data_base$DischDateTime))
+data_base$DischDOW <- wday(data_base$DischDate, label = TRUE, abbr = TRUE)
 
 # Lookup tables for site, discharge disposition, service line inclusion/exclusion ----------------------------------------------
 # Site lookup
-data$Facility.Msx <- as.character(data$Facility.Msx)
-data <- left_join(data, site_dict, by = c("Facility.Msx" = "Facility Msx"))
-data$Site <- as.factor(data$Site)
+data_base$Facility.Msx <- as.character(data_base$Facility.Msx)
+data_base <- left_join(data_base, site_dict, by = c("Facility.Msx" = "Facility Msx"))
+data_base$Site <- as.factor(data_base$Site)
 
 # Discharge disposition formatting and lookup
-data$Discharge.Disposition.Desc.Msx <- factor(data$Discharge.Disposition.Desc.Msx, levels = c(levels(data$Discharge.Disposition.Desc.Msx), "Unknown"))
-data[is.na(data$Discharge.Disposition.Desc.Msx), "Discharge.Disposition.Desc.Msx"] <- "Unknown"
-data$Discharge.Disposition.Desc.Msx <- as.character(data$Discharge.Disposition.Desc.Msx)
-data <- left_join(data, dispo_dict, by = c("Discharge.Disposition.Desc.Msx" = "Discharge Disposition Desc Msx"))
-colnames(data)[ncol(data)] <- "DispoRollUp"
-data$Discharge.Disposition.Desc.Msx <- as.factor(data$Discharge.Disposition.Desc.Msx)
-data$DispoRollUp <- as.factor(data$DispoRollUp)
+data_base$Discharge.Disposition.Desc.Msx <- factor(data_base$Discharge.Disposition.Desc.Msx, levels = c(levels(data_base$Discharge.Disposition.Desc.Msx), "Unknown"))
+data_base[is.na(data_base$Discharge.Disposition.Desc.Msx), "Discharge.Disposition.Desc.Msx"] <- "Unknown"
+data_base$Discharge.Disposition.Desc.Msx <- as.character(data_base$Discharge.Disposition.Desc.Msx)
+data_base <- left_join(data_base, dispo_dict, by = c("Discharge.Disposition.Desc.Msx" = "Discharge Disposition Desc Msx"))
+colnames(data_base)[ncol(data_base)] <- "DispoRollUp"
+data_base$Discharge.Disposition.Desc.Msx <- as.factor(data_base$Discharge.Disposition.Desc.Msx)
+data_base$DispoRollUp <- as.factor(data_base$DispoRollUp)
 
 # Service line inclusion / exclusion lookup
-colnames(data)[colnames(data) == "Service.Desc.Msx"] <- "ServiceLine"
-data$ServiceLine <- as.character(data$ServiceLine)
-data <- left_join(data, service_line_dict[ , c(1,3)], by = c("ServiceLine" = "Service Desc Msx"))
-colnames(data)[ncol(data)] <- "ServiceLineInclude"
-data$ServiceLine <- as.factor(data$ServiceLine)
-data$ServiceLineInclude <- as.factor(data$ServiceLineInclude)
+colnames(data_base)[colnames(data_base) == "Service.Desc.Msx"] <- "ServiceLine"
+data_base$ServiceLine <- as.character(data_base$ServiceLine)
+data_base <- left_join(data_base, service_line_dict[ , c(1,3)], by = c("ServiceLine" = "Service Desc Msx"))
+colnames(data_base)[ncol(data_base)] <- "ServiceLineInclude"
+data_base$ServiceLine <- as.factor(data_base$ServiceLine)
+data_base$ServiceLineInclude <- as.factor(data_base$ServiceLineInclude)
 
 # Exclude expired patients and specified service lines
-data$Include <- ifelse(data$DispoRollUp == "Expired" | data$ServiceLineInclude == "No", FALSE, TRUE)
+data_base$Include <- ifelse(data_base$DispoRollUp == "Expired" | data_base$ServiceLineInclude == "No", FALSE, TRUE)
 
 # Create new dataframe with only included data --------------------------------
-data2 <- data[data$Include == TRUE, ]
+data2_base <- data_base[data_base$Include == TRUE, ]
 
 # Create a function to determine week of year using Sat as first day of week
 weeknum <- function(x) {
@@ -80,11 +81,11 @@ weeknum <- function(x) {
   week_number
 }
 
-data2$Week_Num <- weeknum(data2$DischDate)
-data2$Weekend <- ifelse(data2$DischDOW == "Sat" | data2$DischDOW == "Sun" | data2$DischDOW == "Mon", TRUE, FALSE)
+data2_base$Week_Num <- weeknum(data2_base$DischDate)
+data2_base$Weekend <- ifelse(data2_base$DischDOW == "Sat" | data2_base$DischDOW == "Sun" | data2_base$DischDOW == "Mon", TRUE, FALSE)
 
 # Baseline Analysis for Jan-Sep 2019---------------------------------
-baseline <- data2[data2$DischMo <= 9, ]
+baseline <- data2_base[data2_base$DischMo <= 9, ]
 
 serviceline_daily <- aggregate(Encounter.No ~ Site + DischDate + DischDOW + ServiceLine, data = baseline, FUN = NROW)
 hosp_daily <- aggregate(Encounter.No ~ Site + DischDate + DischDOW, data = baseline, FUN = NROW)

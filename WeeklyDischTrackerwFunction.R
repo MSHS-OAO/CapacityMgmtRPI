@@ -8,7 +8,7 @@
 
 #Analysis for weekend discharge tracking
 library(readxl)
-library(writerxl)
+library(writexl)
 library(ggplot2)
 library(lubridate)
 library(dplyr)
@@ -133,5 +133,10 @@ weekend_rpi_tracker <- merge(baseline_target[ , c("Site", "Weekend Baseline", "W
 weekend_rpi_tracker <- weekend_rpi_tracker[order(factor(weekend_rpi_tracker$Site, levels = site_order)), ]
 weekend_rpi_tracker_print <- format(weekend_rpi_tracker, digits = 0)
 
-write_xlsx(weekend_rpi_tracker_print, path = paste0("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Outputs",
-                                                    "\\Weekend Discharge RPI Tracker ", Sys.Date(), ".xlsx"))
+# write_xlsx(weekend_rpi_tracker_print, path = paste0("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Outputs",
+#                                                     "\\Weekend Discharge RPI Tracker ", Sys.Date(), ".xlsx"))
+
+
+weekly_totals <- data2_update %>%
+  group_by(Site, Week_Num) %>%
+  summarize(Sat = min(DischDate), Mon = max(DischDate), TotalDisch = n(), WeekendDisch = sum(Weekend == TRUE), WkndPercent = WeekendDisch/TotalDisch*100)

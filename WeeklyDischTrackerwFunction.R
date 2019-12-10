@@ -36,6 +36,7 @@ dispo_dict[is.na(dispo_dict$`Discharge Disposition Desc Msx`), 1] <- "Unknown"
 service_line_dict <- read_excel(ref_file, sheet = "ServiceLines")
 
 site_order <- c("MSH", "MSQ", "MSBI", "MSB", "MSW", "MSSL")
+DischDOW_Order <- c("Sat-Mon", "Tue", "Wed", "Thu", "Fri")
 rpi_start <- as.Date("10/26/2019", "%m/%d/%Y")
 rpi_end <- as.Date("11/29/2019", "%m/%d/%Y")
 
@@ -182,7 +183,6 @@ wkend_disch_site_2 <- wkend_disch_site_2[ , c("Site", "Week_Num", "SatDate", "We
                                             "DischDOW", "Weekend", "PostRPI", "TotalDisch")]
 
 daily_disch_site_2 <- rbind(wkday_disch_site_2, wkend_disch_site_2)
-DischDOW_Order <- c("Sat-Mon", "Tue", "Wed", "Thu", "Fri")
 daily_disch_site_2$DischDOW <- factor(daily_disch_site_2$DischDOW, levels = DischDOW_Order)
 daily_disch_site_2 <- daily_disch_site_2[order(daily_disch_site_2$Site, daily_disch_site_2$Week_Num, daily_disch_site_2$DischDOW), ]
 rownames(daily_disch_site_2) <- 1:nrow(daily_disch_site_2)
@@ -238,12 +238,15 @@ site_weekly_table("MSB")
 site_weekly_table("MSW")
 site_weekly_table("MSSL")
 
-export_table_list = list(wkend_rpi_tracker,
-                         MSHWeeklyTotalPercent, MSQWeeklyTotalPercent,
-                         MSBIWeeklyTotalPercent, MSBWeeklyTotalPercent,
-                         MSWWeeklyTotalPercent, MSSLWeeklyTotalPercent)
+export_table_list = list("WeekendSummary" = wkend_rpi_tracker,
+                         "MSH Total & Percent" = MSHWeeklyTotalPercent, 
+                         "MSQ Total & Percent" = MSQWeeklyTotalPercent,
+                         "MSBI Total & Percent" = MSBIWeeklyTotalPercent,
+                         "MSB Total & Percent" = MSBWeeklyTotalPercent,
+                         "MSW Total & Percent" = MSWWeeklyTotalPercent, 
+                         "MSSL Total & Percent" = MSSLWeeklyTotalPercent)
 
-write_xlsx(export_table_list, path = "J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Outputs\\Export Weekly Total Tables 2019-12-09.xlsx")
+# write_xlsx(export_table_list, path = "J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Outputs\\Export Weekly Total Tables 2019-12-10.xlsx")
 
 # export_list = list(DischargeCensus = daily_disch_rpi,
 #                    DischargeCensusWkndGroup = daily_disch_rpi2)

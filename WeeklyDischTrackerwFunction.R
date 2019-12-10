@@ -200,11 +200,11 @@ wkend_totals_site <- wkend_totals_site[order(factor(wkend_totals_site$Site, leve
 rownames(wknd_totals_site) <- 1:nrow(wknd_totals_site)
 
 # Create table to show baseline, target, and weekly data since RPI cycles began
-wknd_rpi_tracker <- left_join(hosp_baseline_target[ , c("Site", "Weekend Baseline", "Weekend Target")], 
+wkend_rpi_tracker <- left_join(hosp_baseline_target[ , c("Site", "Weekend Baseline", "Weekend Target")], 
                               wkend_totals_site, by = c("Site" = "Site"))
 
-weekend_rpi_tracker <- weekend_rpi_tracker[order(factor(weekend_rpi_tracker$Site, levels = site_order)), ]
-weekend_rpi_tracker_print <- format(weekend_rpi_tracker, digits = 0)
+# weekend_rpi_tracker <- weekend_rpi_tracker[order(factor(weekend_rpi_tracker$Site, levels = site_order)), ]
+# weekend_rpi_tracker_print <- format(weekend_rpi_tracker, digits = 0)
 
 # write_xlsx(weekend_rpi_tracker_print, path = paste0("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Outputs",
 #                                                     "\\Weekend Discharge RPI Tracker ", Sys.Date(), ".xlsx"))
@@ -219,14 +219,31 @@ weekly_totals_rpi <- melt(weekly_totals[weekly_totals$PostRPI == TRUE, ], id.var
   
 weekly_totals_rpi <- dcast(weekly_totals_rpi, Site + variable ~ WeekOf)
 
-msh_weekly_totals_table <- weekly_totals_rpi[weekly_totals_rpi$Site == "MSH", ]
-msh_weekly_totals_table$Site <- NULL
-colnames(msh_weekly_totals_table)[1] <- paste("MSH", "Metric")
-rownames(msh_weekly_totals_table) <- 1:nrow(msh_weekly_totals_table)
-msh_weekly_totals_table[1, 2:ncol(msh_weekly_totals_table)] <- round(msh_weekly_totals_table[1, 2:ncol(msh_weekly_totals_table)], digits = 0)
-msh_weekly_totals_table[2, 2:ncol(msh_weekly_totals_table)] <- paste(round(msh_weekly_totals_table[2, 2:ncol(msh_weekly_totals_table)], digits = 1), "%")
+# Create a summary table of total weekly discharges and weekend discharges as % of total discharges-----------
+site_weekly_table <- function(site) {
+  weekly_totals_rpi <- weekly_totals_rpi[weekly_totals_rpi$Site == site, ]
+  weekly_totals_rpi$Site <- NULL
+  colnames(weekly_totals_rpi)[1] <- paste(site, "Metric")
+  rownames(weekly_totals_rpi) <- 1:nrow(weekly_totals_rpi)
+  weekly_totals_rpi[1, 2:ncol(weekly_totals_rpi)] <- round(weekly_totals_rpi[1, 2:ncol(weekly_totals_rpi)], digits = 0)
+  weekly_totals_rpi[2, 2:ncol(weekly_totals_rpi)] <- paste(round(weekly_totals_rpi[2, 2:ncol(weekly_totals_rpi)], digits = 1), "%")
+  name <- paste0(site, "WeeklyTotalPercent")
+  assign(name, weekly_totals_rpi, envir = .GlobalEnv)
+}
 
+site_weekly_table("MSH")
+site_weekly_table("MSQ")
+site_weekly_table("MSBI")
+site_weekly_table("MSB")
+site_weekly_table("MSW")
+site_weekly_table("MSSL")
 
+export_table_list = list(wkend_rpi_tracker,
+                         MSHWeeklyTotalPercent, MSQWeeklyTotalPercent,
+                         MSBIWeeklyTotalPercent, MSBWeeklyTotalPercent,
+                         MSWWeeklyTotalPercent, MSSLWeeklyTotalPercent)
+
+write_xlsx(export_table_list, path = "J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Outputs\\Export Weekly Total Tables 2019-12-09.xlsx")
 
 # export_list = list(DischargeCensus = daily_disch_rpi,
 #                    DischargeCensusWkndGroup = daily_disch_rpi2)
@@ -236,74 +253,94 @@ msh_weekly_totals_table[2, 2:ncol(msh_weekly_totals_table)] <- paste(round(msh_w
 # Plot discharge trends by day of week for each site ---------------------------------------------------------
 sinai_colors <- c("#221f72", "#00AEEF", "#D80B8C", "#B2B3B2", "#C7C6EF", "#DDDEDD", "#FCC9E9")
 
-msh_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSH", ]) +
-                            geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
-                                     position = position_stack(reverse = TRUE)) +
-  labs(title = "MSH Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
-  geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
-  scale_fill_manual(values = sinai_colors) +
-  scale_y_continuous(expand = c(0, 0))
-msh_stacked_bar
-
-msq_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSQ", ]) +
+stacked_bar <- function(site) {
+  ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == site, ]) +
   geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
-           position = position_stack(reverse = TRUE)) +
-  labs(title = "MSQ Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
+             position = position_stack(reverse = TRUE)) +
+  labs(title = paste(site, "Weekly Discharges by DOW"), x = "Week Of", y = "Discharge Volume") +
   theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  guides(fill = guide_legend(reverse = FALSE, title = "Day of Week")) +
   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
   scale_fill_manual(values = sinai_colors) +
-  scale_y_continuous(expand = c(0, 0))
-msq_stacked_bar
+  scale_y_continuous(expand = c(0, 0)) 
+}
 
-msbi_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSBI", ]) +
-  geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
-           position = position_stack(reverse = TRUE)) +
-  labs(title = "MSBI Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
-  geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
-  scale_fill_manual(values = sinai_colors) +
-  scale_y_continuous(expand = c(0, 0))
-msbi_stacked_bar
+stacked_bar("MSH")
+stacked_bar("MSQ")
+stacked_bar("MSBI")
+stacked_bar("MSB")
+stacked_bar("MSW")
+stacked_bar("MSSL")
 
-msb_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSB", ]) +
-  geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
-           position = position_stack(reverse = TRUE)) +
-  labs(title = "MSB Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
-  geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
-  scale_fill_manual(values = sinai_colors) +
-  scale_y_continuous(expand = c(0, 0))
-msb_stacked_bar
-
-msw_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSW", ]) +
-  geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
-           position = position_stack(reverse = TRUE)) +
-  labs(title = "MSW Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
-  geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
-  scale_fill_manual(values = sinai_colors) +
-  scale_y_continuous(expand = c(0, 0))
-msw_stacked_bar
-
-mssl_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSSL", ]) +
-  geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
-           position = position_stack(reverse = TRUE)) +
-  labs(title = "MSSL Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
-  geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
-  scale_fill_manual(values = sinai_colors) +
-  scale_y_continuous(expand = c(0, 0))
-mssl_stacked_bar
+# msh_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSH", ]) +
+#                             geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
+#                                      position = position_stack(reverse = TRUE)) +
+#   labs(title = "MSH Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
+#   theme_bw() +
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
+#   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
+#   scale_fill_manual(values = sinai_colors) +
+#   scale_y_continuous(expand = c(0, 0))
+# msh_stacked_bar
+# 
+# msq_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSQ", ]) +
+#   geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
+#            position = position_stack(reverse = TRUE)) +
+#   labs(title = "MSQ Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
+#   theme_bw() +
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
+#   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
+#   scale_fill_manual(values = sinai_colors) +
+#   scale_y_continuous(expand = c(0, 0))
+# msq_stacked_bar
+# 
+# msbi_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSBI", ]) +
+#   geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
+#            position = position_stack(reverse = TRUE)) +
+#   labs(title = "MSBI Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
+#   theme_bw() +
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
+#   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
+#   scale_fill_manual(values = sinai_colors) +
+#   scale_y_continuous(expand = c(0, 0))
+# msbi_stacked_bar
+# 
+# msb_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSB", ]) +
+#   geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
+#            position = position_stack(reverse = TRUE)) +
+#   labs(title = "MSB Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
+#   theme_bw() +
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
+#   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
+#   scale_fill_manual(values = sinai_colors) +
+#   scale_y_continuous(expand = c(0, 0))
+# msb_stacked_bar
+# 
+# msw_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSW", ]) +
+#   geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
+#            position = position_stack(reverse = TRUE)) +
+#   labs(title = "MSW Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
+#   theme_bw() +
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
+#   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
+#   scale_fill_manual(values = sinai_colors) +
+#   scale_y_continuous(expand = c(0, 0))
+# msw_stacked_bar
+# 
+# mssl_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSSL", ]) +
+#   geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
+#            position = position_stack(reverse = TRUE)) +
+#   labs(title = "MSSL Weekly Discharges by DOW", x = "Week Of", y = "Discharge Volume") +
+#   theme_bw() +
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   guides(fill = guide_legend(reverse = TRUE, title = "Day of Week")) +
+#   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
+#   scale_fill_manual(values = sinai_colors) +
+#   scale_y_continuous(expand = c(0, 0))
+# mssl_stacked_bar

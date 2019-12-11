@@ -269,12 +269,17 @@ stacked_bar <- function(site) {
   scale_y_continuous(expand = c(0, 0)) 
 }
 
-stacked_bar("MSH")
-stacked_bar("MSQ")
-stacked_bar("MSBI")
-stacked_bar("MSB")
-stacked_bar("MSW")
-stacked_bar("MSSL")
+msh_dow <- stacked_bar("MSH")
+msq_dow <- stacked_bar("MSQ")
+msbi_dow <- stacked_bar("MSBI")
+msb_dow <- stacked_bar("MSB")
+msw_dow <- stacked_bar("MSW")
+mssl_dow <- stacked_bar("MSSL")
+
+setwd()
+ggsave()
+
+
 
 # msh_stacked_bar <- ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSH", ]) +
 #                             geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 

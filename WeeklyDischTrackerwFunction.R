@@ -88,6 +88,7 @@ preprocess <- function(raw_df, raw_df_as_char, incl_df_as_char) {
   # Service line inclusion / exclusion lookup
   colnames(raw_df)[colnames(raw_df) == "Service.Desc.Msx"] <- "ServiceLine"
   raw_df$ServiceLine <- as.character(raw_df$ServiceLine)
+  raw_df$ServiceLine <- ifelse(is.na(raw_df$ServiceLine), "Unknown", raw_df$ServiceLine)
   raw_df <- left_join(raw_df, service_line_dict[ , c(1,3)], by = c("ServiceLine" = "Service Desc Msx"))
   colnames(raw_df)[ncol(raw_df)] <- "ServiceLineInclude"
   raw_df$ServiceLine <- as.factor(raw_df$ServiceLine)

@@ -13,3 +13,24 @@ weeknum <- function(x) {
 }
 
 weeknum(a)
+
+
+weeknum_running <- function(x) {
+  # new_yr_2019 <<- as.Date(paste0("1/1/19"), format = "%m/%d/%y")
+  # new_yr_wkday_2019 <<- wday(new_yr_2019, label = FALSE)
+  # new_yr_sat_2019 <<- new_yr_2019 + (7 - new_yr_wkday_2019)
+  first_sat_2019 <<- as.Date("1/5/19", format = "%m/%d/%y")
+  elapsed_days_running <<- as.numeric(x - first_sat_2019)
+  week_number_running <<- ifelse(elapsed_days_running < 0, 1, as.integer(elapsed_days_running/7)+2)
+  week_number_running
+}
+
+weeknum_running(a)
+
+b <- as.Date("1/10/21", format = "%m/%d/%y")
+weeknum_running(b)
+
+days <- seq(as.Date("12/25/19", format = "%m/%d/%y"), as.Date("12/30/20", format = "%m/%d/%y"), by = 1)
+df <- c(days, weeknum_running(days))
+start <- as.Date("12/25/19", format = "%m/%d/%y")
+vec <- start + 0:372

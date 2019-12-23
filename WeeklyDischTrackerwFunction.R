@@ -46,11 +46,12 @@ output_location <- choose.dir(caption = "Select script output folder", default =
 
 # Function to determine week number of year using Sat as first DOW --------------------------------------------------
 weeknum <- function(x) {
-  yr <<- year(x)
-  new_yr <<- as.Date(paste0("1/1/", yr), format = "%m/%d/%Y")
-  new_yr_wkday <<- wday(new_yr, label = FALSE)
-  new_yr_sat <<- new_yr + (7 - new_yr_wkday)
-  elapsed_days <<- as.numeric(x - new_yr_sat)
+  # yr <<- year(x)
+  # new_yr <<- as.Date(paste0("1/1/", yr), format = "%m/%d/%Y")
+  # new_yr_wkday <<- wday(new_yr, label = FALSE)
+  # new_yr_sat <<- new_yr + (7 - new_yr_wkday)
+  first_sat_2019 <<- as.Date("1/5/19", format = "%m/%d/%y")
+  elapsed_days <<- as.numeric(x - first_sat_2019)
   week_number <<- ifelse(elapsed_days < 0, 1, as.integer(elapsed_days/7)+2)
   week_number
 }
@@ -252,7 +253,7 @@ export_table_list = list("WeekendSummary" = wkend_rpi_tracker,
                          "MSW Total & Percent" = MSWWeeklyTotalPercent, 
                          "MSSL Total & Percent" = MSSLWeeklyTotalPercent)
 
-write_xlsx(export_table_list, path = paste0(output_location, "\\Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
+# write_xlsx(export_table_list, path = paste0(output_location, "\\Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
 
 # export_list = list(DischargeCensus = daily_disch_rpi,
 #                    DischargeCensusWkndGroup = daily_disch_rpi2)
@@ -271,8 +272,9 @@ stacked_bar <- function(site) {
   theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
   guides(fill = guide_legend(reverse = FALSE, title = "Day of Week")) +
   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
+  # geom_text(data = weekly_totals[weekly_totals$Site == site & weekly_totals$PostRPI == TRUE, ], aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5) +
   scale_fill_manual(values = sinai_colors) +
-  scale_y_continuous(expand = c(0, 0)) 
+  scale_y_continuous(expand = c(0, 0, 0.1, 0)) 
 }
 
 stacked_bar("MSH")
@@ -282,16 +284,20 @@ stacked_bar("MSB")
 stacked_bar("MSW")
 stacked_bar("MSSL")
 
-msh_graph_dow <- stacked_bar("MSH")
-msq_graph_dow <- stacked_bar("MSQ")
-msbi_graph_dow <- stacked_bar("MSBI")
-msb_graph_dow <- stacked_bar("MSB")
-msw_graph_dow <- stacked_bar("MSW")
-mssl_graph_dow <- stacked_bar("MSSL")
+# msh_graph_dow <- stacked_bar("MSH")
+# msq_graph_dow <- stacked_bar("MSQ")
+# msbi_graph_dow <- stacked_bar("MSBI")
+# msb_graph_dow <- stacked_bar("MSB")
+# msw_graph_dow <- stacked_bar("MSW")
+# mssl_graph_dow <- stacked_bar("MSSL")
 
-ggsave(path = output_location, file = paste("MSH Stacked Bar DOW", Sys.Date(), ".png"), plot = msh_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
-ggsave(path = output_location, file = paste("MSQ Stacked Bar DOW", Sys.Date(), ".png"), plot = msq_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
-ggsave(path = output_location, file = paste("MSBI Stacked Bar DOW", Sys.Date(), ".png"), plot = msbi_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
-ggsave(path = output_location, file = paste("MSB Stacked Bar DOW", Sys.Date(), ".png"), plot = msb_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
-ggsave(path = output_location, file = paste("MSW Stacked Bar DOW", Sys.Date(), ".png"), plot = msw_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
-ggsave(path = output_location, file = paste("MSSL Stacked Bar DOW", Sys.Date(), ".png"), plot = mssl_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
+# ggsave(path = output_location, file = paste("MSH Stacked Bar DOW", Sys.Date(), ".png"), plot = msh_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
+# ggsave(path = output_location, file = paste("MSQ Stacked Bar DOW", Sys.Date(), ".png"), plot = msq_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
+# ggsave(path = output_location, file = paste("MSBI Stacked Bar DOW", Sys.Date(), ".png"), plot = msbi_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
+# ggsave(path = output_location, file = paste("MSB Stacked Bar DOW", Sys.Date(), ".png"), plot = msb_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
+# ggsave(path = output_location, file = paste("MSW Stacked Bar DOW", Sys.Date(), ".png"), plot = msw_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
+# ggsave(path = output_location, file = paste("MSSL Stacked Bar DOW", Sys.Date(), ".png"), plot = mssl_graph_dow, device = "png", width = 4.8, height = 4, units = "in")
+
+# Create graphs of weekend discharge trends
+wkend_disch_trends <- left_join(wkend_disch_site_2[wkend_disch_site_2$PostRPI == TRUE, ], hosp_baseline_target, by = c("Site" = "Site"))
+msh_disch_trends <- wkend_disch_trends[wkend_disch_trends$Site == "MSH", ]

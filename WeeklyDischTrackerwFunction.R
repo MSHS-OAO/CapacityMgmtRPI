@@ -40,7 +40,6 @@ service_line_dict <- read_excel(ref_file, sheet = "ServiceLines")
 site_order <- c("MSH", "MSQ", "MSBI", "MSB", "MSW", "MSSL")
 DischDOW_Order <- c("Sat-Mon", "Tue", "Wed", "Thu", "Fri")
 rpi_start <- as.Date("10/26/2019", "%m/%d/%Y")
-rpi_end <- as.Date(dlg_input(message = "Enter Friday of last RPI cycle in data pull in mm/dd/yy format")$res, "%m/%d/%y")
 
 output_location <- choose.dir(caption = "Select script output folder", default = "J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management")
 
@@ -150,7 +149,11 @@ colnames(hosp_baseline_target) <- c("Site", "Weekend Baseline", "Target Change",
 # Aggregate, format, and track discharges by week----------------
 # Determine if date is after RPI cycles began
 updated_include$PostRPI <- updated_include$DischDate >= rpi_start
-updated_include <- updated_include[ updated_include$DischDate <= rpi_end, ]
+# Determine last Friday in data set
+disch_date_df <- unique(updated_preprocess[ , c("DischDate", "DischDOW")])
+rpi_end <- max(disch_date_df[disch_date_df$DischDOW == "Fri", "DischDate"])
+updated_include <- updated_include[updated_include$DischDate <= rpi_end, ]
+
 
 # Create daily list of discharges by site
 daily_disch_site <- as.data.frame(updated_include %>%
@@ -272,7 +275,7 @@ stacked_bar <- function(site) {
   theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
   guides(fill = guide_legend(reverse = FALSE, title = "Day of Week")) +
   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
-  # geom_text(data = weekly_totals[weekly_totals$Site == site & weekly_totals$PostRPI == TRUE, ], aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5) +
+  geom_text(data = weekly_totals[weekly_totals$Site == site & weekly_totals$PostRPI == TRUE, ], aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5) +
   scale_fill_manual(values = sinai_colors) +
   scale_y_continuous(expand = c(0, 0, 0.1, 0)) 
 }

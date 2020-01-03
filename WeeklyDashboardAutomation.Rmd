@@ -4,9 +4,8 @@ author: "Kate Nevin"
 date: "1/2/2020"
 output: 
   html_document:
-  fig_width: 6
+  fig_width: 5
   fig_height: 4
-  fig_align: center
 ---
 
 ```{r setup, include=FALSE}
@@ -97,7 +96,7 @@ preprocess <- function(raw_df, raw_df_as_char, incl_df_as_char) {
   # Site lookup
   raw_df$Facility.Msx <- as.character(raw_df$Facility.Msx)
   raw_df <- left_join(raw_df, site_dict, by = c("Facility.Msx" = "Facility Msx"))
-  raw_df$Site <- as.factor(raw_df$Site)
+  raw_df$Site <- factor(raw_df$Site, levels = site_order)
 
   # Discharge disposition formatting and lookup
   raw_df$Discharge.Disposition.Desc.Msx <- factor(raw_df$Discharge.Disposition.Desc.Msx, levels = c(levels(raw_df$Discharge.Disposition.Desc.Msx), "Blank"))
@@ -239,12 +238,7 @@ rownames(wkend_totals_site) <- 1:nrow(wkend_totals_site)
 wkend_rpi_tracker <- left_join(hosp_baseline_target[ , c("Site", "Weekend Baseline", "Weekend Target")], 
                               wkend_totals_site, by = c("Site" = "Site"))
 
-# weekend_rpi_tracker <- weekend_rpi_tracker[order(factor(weekend_rpi_tracker$Site, levels = site_order)), ]
-# weekend_rpi_tracker_print <- format(weekend_rpi_tracker, digits = 0)
-
-# write_xlsx(weekend_rpi_tracker_print, path = paste0("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Outputs",
-#                                                     "\\Weekend Discharge RPI Tracker ", Sys.Date(), ".xlsx"))
-
+# wkend_rpi_tracker$`Weekend Baseline` <- round(wkend_rpi_tracker$`Weekend Baseline`, digits = 0)
 
 # Aggregate, format, and track discharges by day of week -----------------------------------
 weekly_totals <- as.data.frame(daily_disch_site_2 %>%
@@ -254,6 +248,8 @@ weekly_totals <- as.data.frame(daily_disch_site_2 %>%
 weekly_totals_rpi <- melt(weekly_totals[weekly_totals$PostRPI == TRUE, ], id.vars = c("Site", "WeekOf"), measure.vars = c("WklyTotal", "WkendPercent"))
   
 weekly_totals_rpi <- dcast(weekly_totals_rpi, Site + variable ~ WeekOf)
+
+wkend_disch_trends <- left_join(wkend_disch_site_2[wkend_disch_site_2$PostRPI == TRUE, ], hosp_baseline_target, by = c("Site" = "Site"))
 
 # Create a summary table of total weekly discharges and weekend discharges as % of total discharges-----------
 site_weekly_table <- function(site) {
@@ -274,6 +270,12 @@ site_weekly_table("MSB")
 site_weekly_table("MSW")
 site_weekly_table("MSSL")
 
+wkend_percent <- weekly_totals_rpi[weekly_totals_rpi$variable == "WkendPercent", ]
+wkend_percent$variable <- NULL
+wkend_percent[ , 2:ncol(wkend_percent)] <- round(wkend_percent[ ,  2:ncol(wkend_percent)], digits = 1)
+wkend_percent[ , 2:ncol(wkend_percent)] <- lapply(wkend_percent[ , 2:ncol(wkend_percent)], paste0, "%")
+
+
 export_table_list = list("WeekendSummary" = wkend_rpi_tracker,
                          "MSH Total & Percent" = MSHWeeklyTotalPercent, 
                          "MSQ Total & Percent" = MSQWeeklyTotalPercent,
@@ -288,12 +290,20 @@ export_table_list = list("WeekendSummary" = wkend_rpi_tracker,
 #                    DischargeCensusWkndGroup = daily_disch_rpi2)
 
 # write_xlsx(export_list, path = "J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Outputs\\Export Discharge Census Data 2019-12-06.xlsx")
+```
 
+```{r Functions for plots, echo = FALSE}
 # Plot discharge trends by day of week for each site ---------------------------------------------------------
 sinai_colors <- c("#221f72", "#00AEEF", "#D80B8C", "#B2B3B2", "#C7C6EF", "#DDDEDD", "#FCC9E9")
 
 stacked_bar <- function(site) {
-  ggplot(data = daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == site, ]) +
+  lookback_weeks <- 6
+  stacked_data <- daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSH" & 
+                                           daily_disch_site_2_rpi$SatDate %in% tail(unique(daily_disch_site_2_rpi$SatDate), lookback_weeks), ]
+  
+  total_data <- weekly_totals[weekly_totals$Site == "MSH" & 
+                                           weekly_totals$SatDate %in% tail(unique(weekly_totals$SatDate), lookback_weeks), ]
+    ggplot(data = stacked_data) +
   geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
              position = position_stack(reverse = TRUE)) +
   labs(title = paste(site, "Weekly Discharges by DOW"), x = "Week Of", y = "Discharge Volume") +
@@ -301,41 +311,151 @@ stacked_bar <- function(site) {
   theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
   guides(fill = guide_legend(reverse = FALSE, title = "Day of Week")) +
   geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
-  geom_text(data = weekly_totals[weekly_totals$Site == site & weekly_totals$PostRPI == TRUE, ], aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5) +
+  geom_text(data = total_data, aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5) +
   scale_fill_manual(values = sinai_colors) +
   scale_y_continuous(expand = c(0, 0, 0.1, 0)) 
 }
+
+weekend_trends <- function(site) {
+  ggplot(data = wkend_disch_trends[wkend_disch_trends$Site == site, ], mapping = aes(x = SatDate , y = TotalDisch, group = 1)) +
+    theme_bw() +
+    labs(title =  paste(site,"Weekend Discharge Trends"), x = "Week Of", y = "Discharge Volume") +
+    theme(plot.title = element_text(hjust=0.5),legend.position = "bottom") +
+    
+    geom_hline(aes(yintercept= round(`Weekend Baseline`, digits = 0), linetype = "Baseline (Jan-Sep'19)"), colour = "#8c8c8c", size = 1) +
+    geom_text(aes(length(SatDate) + 0.1 ,`Weekend Baseline`, label = round(`Weekend Baseline`, digits = 0), vjust = 1.1)) +
+    
+    geom_hline(aes(yintercept= `Weekend Target`,linetype = "Target") , colour = "black", size = 1) +
+    geom_text(aes(length(SatDate) + 0.1 ,`Weekend Target`,label = `Weekend Target`, vjust = 1.1)) +
+    
+    geom_point(color = "#00AEEF") +
+    geom_line(aes(linetype = "Actual"), color = "#00AEEF", size = 1) +
+    geom_text(aes(x= SatDate , y = TotalDisch, label = TotalDisch, vjust= -0.25, hjust = -0.15)) +
+    
+    scale_x_discrete(expand = c(0, 0, 0.05, 0.2)) +
+    scale_y_continuous(expand = c(0, 5, 0.2, 0.5)) +
+    scale_linetype_manual(name = " ",values = c(1, 2, 1),
+                          guide = guide_legend(override.aes = list(color = c("#00AEEF","#8c8c8c", "black")))) #+
+}
+```
+
+# Test lookback
+```{r echo = FALSE}
+lookback_weeks <- 5
+# test <- tail(unique(daily_disch_site_2_rpi$SatDate), lookback_period)
+# test2 <- daily_disch_site_2_rpi[daily_disch_site_2_rpi$SatDate %in% test, ]
+bar_data <- daily_disch_site_2_rpi[daily_disch_site_2_rpi$Site == "MSH" &                                        daily_disch_site_2_rpi$SatDate  %in% tail(unique(daily_disch_site_2_rpi$SatDate), lookback_weeks), ]
+total_data <- weekly_totals[weekly_totals$Site == "MSH" &                                        weekly_totals$SatDate  %in% tail(unique(weekly_totals$SatDate), lookback_weeks), ]
+ggplot(data = bar_data) +
+  geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
+             position = position_stack(reverse = TRUE)) +
+  labs(title = paste("MSH", "Weekly Discharges by DOW"), x = "Week Of", y = "Discharge Volume") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  guides(fill = guide_legend(reverse = FALSE, title = "Day of Week")) +
+  geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
+  geom_text(data = total_data, aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5) +
+  scale_fill_manual(values = sinai_colors) +
+  scale_y_continuous(expand = c(0, 0, 0.1, 0))
 ```
 
 
+```{r Play with scatter plot, echo = FALSE}
+# ggplot(data = wkend_disch_site_2[wkend_disch_site_2$PostRPI == TRUE & wkend_disch_site_2$Site == "MSH", ], ) +
+#   
+#   theme_bw() +
+#   labs(title =  paste("MSH","Weekend Discharge Trends"), x = "Week Of", y = "Discharge Volume") +
+#   theme(plot.title = element_text(hjust=0.5),legend.position = "bottom") +
+# 
+#   geom_hline(aes(yintercept= avg_hosp_stats[avg_hosp_stats$Site == "MSH", "WeekendTotal"], linetype = "Baseline"), linetype = "dashed", colour = "#8c8c8c", size = 1) +
+#   geom_text(aes(length(SatDate) + 0.1 ,avg_hosp_stats[avg_hosp_stats$Site == "MSH", "WeekendTotal"], label = round(avg_hosp_stats[avg_hosp_stats$Site == "MSH", "WeekendTotal"], digits = 0), vjust = 1.1)) +
+# 
+#   geom_hline(aes(yintercept= avg_hosp_stats[avg_hosp_stats$Site == "MSH", "TargetTotal"],linetype = "Target") , linetype = "solid", colour = "black", size = 1) +
+#   geom_text(aes(length(SatDate) + 0.1 ,avg_hosp_stats[avg_hosp_stats$Site == "MSH", "TargetTotal"],label = avg_hosp_stats[avg_hosp_stats$Site == "MSH", "TargetTotal"], vjust = 1.1)) +
+#    
+#  geom_point(aes(x = SatDate , y = TotalDisch, group = 1), color = "#00AEEF") +
+#  geom_line(aes(x = SatDate , y = TotalDisch, group = 1, linetype = "Actual"), color = "#00AEEF", size = 1) +
+#  geom_text(aes(x= SatDate , y = TotalDisch, label = TotalDisch, vjust= -0.25, hjust = -0.15)) +
+# 
+#    scale_x_discrete(expand = c(0, 0, 0.05, 0.2)) +
+#    scale_y_continuous(expand = c(0, 5, 0.2, 0.5)) #+
+#    # scale_linetype_manual(name = "", labels = c("Actual", "Target", "Baseline"), values = c(1, 2, 1))
+#      #values = c(1, 2, 1),
+#    #                         guide = guide_legend(override.aes = list(color = c("#00AEEF","#8c8c8c", "black"))))
+
+```
+
+## RPI Progress
+```{r Summary Table, echo = FALSE}
+b <- rpi_tracker_df 
+
+new_df <- b %>%
+    mutate(TotalDisch = cell_spec(TotalDisch, "html", color = ifelse(TotalDisch >= Target, "green", "red"))) %>%
+  melt(id.vars = c("Site", "WeekendOf", "Baseline", "Target"), measure.vars = "TotalDisch") %>%
+  dcast(Site + Baseline + Target ~ WeekendOf, value.vars = "value")
+
+
+new_df %>%
+  kable(format = "html", escape = FALSE, digits = 0, align = "c") %>%
+  kable_styling(bootstrap_options = "basic") %>%
+ add_header_above(c("Weekend Discharge Summary" = ncol(new_df)), bold = TRUE, italic = TRUE, background = "#221f72", color = "white", line = TRUE) %>%
+   row_spec(row = 0, bold = TRUE, italic = TRUE, background = "#221f72", color = "white") %>%
+   row_spec(row = nrow(wkend_rpi_tracker), extra_css = "border-bottom: thin solid;") %>%
+   column_spec(column = 1, border_right = TRUE, bold = TRUE) %>%
+   column_spec(column = 3, border_right = TRUE, bold = TRUE)   
+
+
+
+
+```
+
 ## MSH Weekend Discharge Dashboard
-```{r MSH Data, echo = FALSE, results = 'asis'}
+```{r MSH Data, echo = FALSE, fig.align="center"}
+weekend_trends("MSH")
 stacked_bar("MSH")
-kable(MSHWeeklyTotalPercent, caption = "MSH Weekend Discharge as Percent of Total Discharges") %>%
-  kable_styling(position = "center")
+wkend_percent[wkend_percent$Site == "MSH", ] %>%
+  kable(align = "c", row.names = FALSE) %>%
+  add_header_above(c("Weekend Discharges as Percentage of Total Weekly Dischages" = ncol(wkend_percent)), bold = TRUE, italic = TRUE, background = "#221f72", color = "white", line = TRUE) %>%
+  row_spec(row = 0, bold = TRUE, italic = TRUE, background = "#221f72", color = "white") %>%
+  row_spec(row = 1, extra_css = "border-bottom: thin solid;")
 ```
 
 ## MSQ Weekend Discharge Dashboard
-```{r MSQ Data, echo = FALSE}
+```{r MSQ Data, echo = FALSE, fig.align="center"}
+weekend_trends("MSQ")
 stacked_bar("MSQ")
+kable(MSQWeeklyTotalPercent, caption = "MSQ Weekend Discharge as Percent of Total Discharges") %>%
+  kable_styling(position = "center")
 ```
 
 ## MSBI Weekend Discharge Dashboard
-```{r MSBI Data, echo = FALSE}
+```{r MSBI Data, echo = FALSE, fig.align="center"}
+weekend_trends("MSBI")
 stacked_bar("MSBI")
+kable(MSBIWeeklyTotalPercent, caption = "MSBI Weekend Discharge as Percent of Total Discharges") %>%
+  kable_styling(position = "center")
 ```
 
 ## MSB Weekend Discharge Dashboard
-```{r MSB Data, echo = FALSE}
+```{r MSB Data, echo = FALSE, fig.align="center"}
+weekend_trends("MSB")
 stacked_bar("MSB")
+kable(MSBWeeklyTotalPercent, caption = "MSB Weekend Discharge as Percent of Total Discharges") %>%
+  kable_styling(position = "center")
 ```
 
 ## MSW Weekend Discharge Dashboard
-```{r MSW Data, echo = FALSE}
+```{r MSW Data, echo = FALSE, fig.align="center"}
+weekend_trends("MSW")
 stacked_bar("MSW")
+kable(MSWWeeklyTotalPercent, caption = "MSW Weekend Discharge as Percent of Total Discharges") %>%
+  kable_styling(position = "center")
 ```
 
 ## MSSL Weekend Discharge Dashboard
-```{r MSSL Data, echo = FALSE, fig.align="center", fig.height=4, fig.width=4.8}
+```{r MSSL Data, echo = FALSE, fig.align="center"}
+weekend_trends("MSSL")
 stacked_bar("MSSL")
+kable(MSSLWeeklyTotalPercent, caption = "MSSL Weekend Discharge as Percent of Total Discharges") %>%
+  kable_styling(position = "center")
 ```

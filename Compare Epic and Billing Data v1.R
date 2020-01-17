@@ -8,7 +8,7 @@ rm(list = ls())
 #install.packages("dplyr")
 #install.packages("reshape2")
 #install.packages("svDialogs")
-install.packages("stringr")
+#install.packages("stringr")
 
 #Analysis for weekend discharge tracking
 library(readxl)
@@ -135,4 +135,18 @@ billing_oct_msw_msh %>%
   summarize(TotalDisch = n())
 
 billing_oct_msw_msh$Encounter <- as.character(billing_oct_msw_msh$Encounter.No)
-billing_oct_msw_msh$Encounter <- ifelse()
+billing_oct_msw_msh$Encounter <- ifelse(str_sub(billing_oct_msw_msh$Encounter, start = nchar(billing_oct_msw_msh$Encounter), end = nchar(billing_oct_msw_msh$Encounter)) == "I", 
+                                        as.integer(str_sub(billing_oct_msw_msh$Encounter, start = 1, end = nchar(billing_oct_msw_msh$Encounter)-1)), as.integer(billing_oct_msw_msh$Encounter))
+
+epic_df$`VISIT ID` <- as.integer(epic_df$`VISIT ID`)
+epic_df$VisitInBilling <- ifelse(is.na(match(epic_df$`VISIT ID`, billing_oct_msw_msh$Encounter)), 0, 1)
+
+billing_oct_msw_msh$EncounterInEpic <- ifelse(is.na(match(billing_oct_msw_msh$Encounter, epic_df$`VISIT ID`)), 0, 1)
+
+incl_bill_not_in_epic <- billing_oct_msw_msh[billing_oct_msw_msh$DispoRollUp != "Expired" & billing_oct_msw_msh$EncounterInEpic == 0, ]
+billing_oct_msw_msh <- left_join(billing_oct_msw_msh, epic_df[ , c("VISIT ID", "DISCHARGE UNIT", "DISPOSITION", "DBS", "Include")], by = c("Encounter" = "VISIT ID"))
+
+incl_bill_excl_epic <- billing_oct_msw_msh[billing_oct_msw_msh$Include.x == TRUE & billing_oct_msw_msh$Include.y == 0 & !is.na(billing_oct_msw_msh$Include.y), ]
+
+msh_diff <- incl_bill_excl_epic[incl_bill_excl_epic$Site == "MSH", ]
+msw_diff <- incl_bill_excl_epic[incl_bill_excl_epic$Site == "MSW", ]

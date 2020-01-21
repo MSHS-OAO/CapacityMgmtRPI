@@ -28,20 +28,7 @@ setwd("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\
 tsi_raw_base <- read.csv("Discharge Billing Data\\Crosstab_Discharges_YTD_Test 2019-11-22.csv", header = TRUE, na.strings = c("", "NA"))
 
 # Import and bind monthly Epic data files -----------------
-epic_raw_jan19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_January 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_feb19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_February 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_mar19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_March 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_apr19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_April 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_may19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_May 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_jun19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_June 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_jul19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_July 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_aug19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_August 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_sep19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_September 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_oct19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_October 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_nov19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_November 2019.xls", col_names = TRUE, na = c("", "NA"))
-epic_raw_dec19 <- read_excel("Epic Daily Discharge Timings\\Monthly Reports 2019 Updated Filters\\Discharge Timings Report monthly_December 2019.xls", col_names = TRUE, na = c("", "NA"))
-
-epic_raw_2019 <- rbind(epic_raw_jan19, epic_raw_feb19, epic_raw_mar19, epic_raw_apr19, epic_raw_may19, epic_raw_jun19, epic_raw_jul19, epic_raw_aug19, epic_raw_sep19, epic_raw_oct19, epic_raw_nov19, epic_raw_dec19)
+epic_raw_fy19 <- read_excel("Epic Daily Discharge Timings\\FY2019 Consolidated Reports\\FY2019 Epic Discharge Data 2020-01-21.xlsx", col_names = TRUE, na = c("", "NA"))
 
 # Reference files and constants ----------------------------------------
 ref_file <- "Analysis Reference\\Epic and TSI Data Analysis Reference 2020-01-21.xlsx"
@@ -151,9 +138,9 @@ tsi_baseline_output <- preprocess_tsi(tsi_raw_base)
 tsi_baseline_preprocessed <- tsi_baseline_output[[1]]
 tsi_baseline_include <- tsi_baseline_output[[2]]
 
-epic_baseline_output <- preprocess_epic(epic_raw_base)
-epic_baseline_preprocessed <- epic_baseline_output[[1]]
-epic_baseline_include <- epic_baseline_output[[2]]
+epic_fy19_output <- preprocess_epic(epic_raw_fy19)
+epic_fy19_preprocessed <- epic_fy19_output[[1]]
+epic_fy19_include <- epic_fy19_output[[2]]
 
 # Subset TSI and Epic data with columns to be included in master dataframe
 tsi_baseline_subset <- tsi_baseline_include[tsi_baseline_include$Site == "MSBI" | tsi_baseline_include$Site == "MSB", c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx", 
@@ -166,12 +153,12 @@ colnames(tsi_baseline_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUn
                                    "DischYr", "DischMo", "DischHr", "DischDOW",
                                    "Site", "Disposition", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
 
-epic_baseline_subset <- epic_baseline_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
+epic_fy19_subset <- epic_fy19_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
                                                    "DISPOSITION", "DBS", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
                                                    "DischYr", "DischMo", "DischHr", "DischDOW", 
                                                    "Site", "IncludeUnit", "Include", "Week_Num", "Weekend")]
 
-colnames(epic_baseline_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
+colnames(epic_fy19_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
                                     "Disposition", "ServiceLine", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
                                     "DischYr", "DischMo", "DischHr", "DischDOW",
                                     "Site", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
@@ -181,12 +168,12 @@ tsi_baseline_subset <- tsi_baseline_subset[ , c("Site", "EncounterNo", "MRN", "A
                                                 "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
                                                 "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
 
-epic_baseline_subset <- epic_baseline_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
+epic_fy19_subset <- epic_fy19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
                                                 "DischUnit", "ServiceLine", "Disposition", 
                                                 "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
                                                 "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
 
-comb_baseline_subset <- rbind(tsi_baseline_subset, epic_baseline_subset)
+comb_baseline_subset <- rbind(tsi_baseline_subset, epic_fy19_subset)
 
 
 # Aggregate and format baseline data from Jan-Sep 2019 for future use --------------------------------

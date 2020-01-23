@@ -25,8 +25,8 @@ getwd()
 setwd("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data")
 
 # Data used to establish baseline and targets remains constant
-tsi_raw_base <- read.csv("Discharge Billing Data\\Crosstab_Discharges_YTD_Test 2019-11-22.csv", header = TRUE, na.strings = c("", "NA"), stringsAsFactors = FALSE)
-tsi_raw_octdec <- read.csv("Discharge Billing Data\\MSBI Discharges Oct-Dec2019 2020-01-22.csv", header = TRUE, na.strings = c("", "NA"), stringsAsFactors = FALSE)
+tsi_raw_baseline <- read.csv("Discharge Billing Data\\Crosstab_Discharges_YTD_Test 2019-11-22.csv", header = TRUE, na.strings = c("", "NA"), stringsAsFactors = FALSE)
+tsi_raw_updates <- read.csv("Discharge Billing Data\\MSBI Discharges Oct-Dec2019 2020-01-22.csv", header = TRUE, na.strings = c("", "NA"), stringsAsFactors = FALSE)
 
 # Import and bind monthly Epic data files -----------------
 epic_raw_fy19 <- read_excel("Epic Daily Discharge Timings\\FY2019 Consolidated Reports\\FY2019 Epic Discharge Data 2020-01-21.xlsx", col_names = TRUE, na = c("", "NA"))
@@ -134,67 +134,66 @@ preprocess_epic <- function(epic_raw_df) {
 }
 
 # Preprocess baseline data and updated weekly datasets -----------------------------
-tsi_baseline_output <- preprocess_tsi(tsi_raw_base)
+tsi_baseline_output <- preprocess_tsi(tsi_raw_baseline)
 
 tsi_baseline_preprocessed <- tsi_baseline_output[[1]]
 tsi_baseline_include <- tsi_baseline_output[[2]]
 
-tsi_jansep_include <- tsi_baseline_include[tsi_baseline_include$Site == "MSBI" & tsi_baseline_include$DischMo <= 9, ]
+tsi_jansep19_include <- tsi_baseline_include[tsi_baseline_include$Site == "MSBI" & tsi_baseline_include$DischMo <= 9, ]
 
-tsi_octdec_output <- preprocess_tsi(tsi_raw_octdec)
-tsi_octdec_preprocessed <- tsi_octdec_output[[1]]
-tsi_octdec_include <- tsi_octdec_output[[2]]
+tsi_updates_output <- preprocess_tsi(tsi_raw_updates)
+tsi_updates_preprocessed <- tsi_updates_output[[1]]
+tsi_updates_include <- tsi_updates_output[[2]]
 
-tsi_fy19_include <- rbind(tsi_jansep_include, tsi_octdec_include)
+# tsi_fy19_include <- rbind(tsi_jansep_include, tsi_octdec_include)
 
 epic_fy19_output <- preprocess_epic(epic_raw_fy19)
 epic_fy19_preprocessed <- epic_fy19_output[[1]]
 epic_fy19_include <- epic_fy19_output[[2]]
 
+epic_jansep19_include <- epic_fy19_include[epic_fy19_include$DischMo <= 9, ]
+
 # Subset TSI and Epic data with columns to be included in master dataframe
-tsi_fy19_subset <- tsi_fy19_include[tsi_fy19_include$Site == "MSBI", c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx", 
+tsi_jansep19_subset <- tsi_jansep19_include[tsi_jansep19_include$Site == "MSBI", c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx", 
                                                  "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
                                                  "DischYr", "DischMo", "DischHr", "DischDOW",
                                                  "Site", "DispoRollUp", "ServiceLineInclude", "Include", "Week_Num", "Weekend")]
 
-colnames(tsi_fy19_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUnit",
+colnames(tsi_jansep19_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUnit",
                                    "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
                                    "DischYr", "DischMo", "DischHr", "DischDOW",
                                    "Site", "Disposition", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
 
-epic_fy19_subset <- epic_fy19_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
+epic_jansep19_subset <- epic_jansep19_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
                                                    "DISPOSITION", "DBS", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
                                                    "DischYr", "DischMo", "DischHr", "DischDOW", 
                                                    "Site", "IncludeUnit", "Include", "Week_Num", "Weekend")]
 
-colnames(epic_fy19_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
+colnames(epic_jansep19_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
                                     "Disposition", "ServiceLine", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
                                     "DischYr", "DischMo", "DischHr", "DischDOW",
                                     "Site", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
 
-tsi_fy19_subset <- tsi_fy19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
+tsi_jansep19_subset <- tsi_jansep19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
                                                 "DischUnit", "ServiceLine", "Disposition", 
                                                 "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
                                                 "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
 
-epic_fy19_subset <- epic_fy19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
+epic_jansep19_subset <- epic_jansep19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
                                                 "DischUnit", "ServiceLine", "Disposition", 
                                                 "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
                                                 "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
 
 # Combine data from both reporting systems for FY2019 into one dataframe
-comb_fy19_subset <- rbind(tsi_fy19_subset, epic_fy19_subset)
-comb_fy19_subset <- comb_fy19_subset[!is.na(comb_fy19_subset$Site), ]
+comb_jansep19_subset <- rbind(tsi_jansep19_subset, epic_jansep19_subset)
+comb_jansep19_subset <- comb_jansep19_subset[!is.na(comb_jansep19_subset$Site), ]
 
 # Format combined data
-comb_fy19_subset$Site <- factor(comb_fy19_subset$Site, levels = site_order, ordered = TRUE)
-comb_fy19_subset[ , c("DischUnit", "ServiceLine", "Disposition", "IncludeUnitOrServiceLine")] <- lapply(comb_fy19_subset[ , c("DischUnit", "ServiceLine", "Disposition", "IncludeUnitOrServiceLine")], factor)
-
-# Subset combined data to include data from baseline period (Jan-Sep 2019)
-comb_baseline_subset <- comb_fy19_subset[comb_fy19_subset$DischMo <= 9 & comb_fy19_subset$DischYr == 2019, ]
+comb_jansep19_subset$Site <- factor(comb_jansep19_subset$Site, levels = site_order, ordered = TRUE)
+comb_jansep19_subset[ , c("DischUnit", "ServiceLine", "Disposition", "IncludeUnitOrServiceLine")] <- lapply(comb_jansep19_subset[ , c("DischUnit", "ServiceLine", "Disposition", "IncludeUnitOrServiceLine")], factor)
 
 # Aggregate and format baseline data from Jan-Sep 2019 for future use --------------------------------
-comb_site_daily <- as.data.frame(comb_baseline_subset %>%
+comb_site_daily <- as.data.frame(comb_jansep19_subset %>%
                                    group_by(Site, DischDate, DischDOW) %>%
                                    summarize(TotalDisch = n()))
 
@@ -237,6 +236,11 @@ comb_rpi_subset <- comb_rpi_subset[comb_rpi_subset$PostRPI == TRUE, ]
 site_daily_disch_vol <- as.data.frame(comb_rpi_subset %>%
                                         group_by(Site, DischDate, WeekNumber, DischDOW, Weekend, PostRPI) %>%
                                         summarize(TotalDisch = n()))
+
+site_daily_disch_vol2 <- as.data.frame(comb_rpi_subset %>%
+                                        group_by(Site, DischUnit, Disposition, DischDate, WeekNumber, DischDOW, Weekend, PostRPI) %>%
+                                        summarize(TotalDisch = n()))
+
 
 # Create a list of week dates starting with Sat and ending with Fri
 week_num_dates <- as.data.frame(site_daily_disch_vol %>%

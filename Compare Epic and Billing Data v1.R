@@ -122,7 +122,7 @@ epic_raw <- rbind(msw_epic_raw, msh_epic_raw)
 epic_df <- epic_raw
 epic_df$DispoInclude <- ifelse(epic_df$DISPOSITION == "Expired", 0, 1)
 
-epic_unit_exclusions <- read_excel("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Epic Daily Discharge Timings\\Monthly Reports Jan-Oct 2019\\Analysis and Exclusions\\List of Exclusions.xlsx")
+epic_unit_exclusions <- read_excel("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Epic Daily Discharge Timings\\Monthly Reports Jan-Oct 2019 Original Filters\\Analysis and Exclusions\\List of Exclusions.xlsx")
 epic_df$UnitInclude <- ifelse(is.na(match(epic_df$`DISCHARGE UNIT`, epic_unit_exclusions$Units)), 1, 0)
 
 epic_df$Include <- ifelse(epic_df$DispoInclude == 0 | epic_df$UnitInclude == 0, 0, 1)

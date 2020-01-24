@@ -120,7 +120,7 @@ preprocess_epic <- function(epic_raw_df) {
   
   # Discharge disposition - replace missing disposition with Unknown
   epic_raw_df[is.na(epic_raw_df$DISPOSITION), "DISPOSITION"] <- "Unknown"
-
+  
   # Unit Inclusion / Exclusion
   epic_raw_df <- left_join(epic_raw_df, epic_unit_excl[ , c("Units", "Exclude")], by = c("DISCHARGE UNIT" = "Units"))
   epic_raw_df$IncludeUnit <- ifelse(is.na(epic_raw_df$Exclude), "Yes", "No")
@@ -146,64 +146,71 @@ tsi_baseline_include <- tsi_baseline_output[[2]]
 
 tsi_jansep19_include <- tsi_baseline_include[tsi_baseline_include$Site == "MSBI" & tsi_baseline_include$DischMo <= 9, ]
 
+tsi_updates_output <- preprocess_tsi(tsi_raw_updates)
+
+tsi_updates_preprocessed <- tsi_updates_output[[1]]
+tsi_updates_include <- tsi_updates_output[[2]]
+
+tsi_fy19_include <- rbind(tsi_jansep19_include, tsi_updates_include)
+
 epic_fy19_output <- preprocess_epic(epic_raw_fy19)
 epic_fy19_preprocessed <- epic_fy19_output[[1]]
 epic_fy19_include <- epic_fy19_output[[2]]
 
-epic_jansep19_include <- epic_fy19_include[epic_fy19_include$DischMo <= 9, ]
-
 # Data preprocessing and analysis for baseline period of Jan-Sep 2019 -------------------------------------------------------------
 # Subset TSI and Epic data with columns to be included in master dataframe
-tsi_jansep19_subset <- tsi_jansep19_include[tsi_jansep19_include$Site == "MSBI", c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx", 
-                                                 "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
-                                                 "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                 "Site", "DispoRollUp", "ServiceLineInclude", "Include", "Week_Num", "Weekend")]
+tsi_fy19_subset <- tsi_fy19_include[tsi_fy19_include$Site == "MSBI", c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx", 
+                                                                                   "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
+                                                                                   "DischYr", "DischMo", "DischHr", "DischDOW",
+                                                                                   "Site", "DispoRollUp", "ServiceLineInclude", "Include", "Week_Num", "Weekend")]
 
-colnames(tsi_jansep19_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUnit",
+colnames(tsi_fy19_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUnit",
                                    "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
                                    "DischYr", "DischMo", "DischHr", "DischDOW",
                                    "Site", "Disposition", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
 
-epic_jansep19_subset <- epic_jansep19_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
+epic_fy19_subset <- epic_fy19_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
                                                    "DISPOSITION", "DBS", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
                                                    "DischYr", "DischMo", "DischHr", "DischDOW", 
                                                    "Site", "IncludeUnit", "Include", "Week_Num", "Weekend")]
 
-colnames(epic_jansep19_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
+colnames(epic_fy19_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
                                     "Disposition", "ServiceLine", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
                                     "DischYr", "DischMo", "DischHr", "DischDOW",
                                     "Site", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
 
-tsi_jansep19_subset <- tsi_jansep19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
+tsi_fy19_subset <- tsi_fy19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
                                                 "DischUnit", "ServiceLine", "Disposition", 
                                                 "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
                                                 "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
 
-epic_jansep19_subset <- epic_jansep19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
-                                                "DischUnit", "ServiceLine", "Disposition", 
-                                                "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
+epic_fy19_subset <- epic_fy19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
+                                                  "DischUnit", "ServiceLine", "Disposition", 
+                                                  "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
+                                                  "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
 
 # Combine data from both reporting systems for FY2019 into one dataframe
-comb_jansep19_subset <- rbind(tsi_jansep19_subset, epic_jansep19_subset)
-comb_jansep19_subset <- comb_jansep19_subset[!is.na(comb_jansep19_subset$Site), ]
+comb_fy19_subset <- rbind(tsi_fy19_subset, epic_fy19_subset)
+comb_fy19_subset <- comb_fy19_subset[!is.na(comb_fy19_subset$Site), ]
 
 # Format combined data
-comb_jansep19_subset$Site <- factor(comb_jansep19_subset$Site, levels = site_order, ordered = TRUE)
-comb_jansep19_subset[ , c("DischUnit", "ServiceLine", "Disposition", "IncludeUnitOrServiceLine")] <- lapply(comb_jansep19_subset[ , c("DischUnit", "ServiceLine", "Disposition", "IncludeUnitOrServiceLine")], factor)
+comb_fy19_subset$Site <- factor(comb_fy19_subset$Site, levels = site_order, ordered = TRUE)
+comb_fy19_subset[ , c("DischUnit", "ServiceLine", "Disposition", "IncludeUnitOrServiceLine")] <- lapply(comb_fy19_subset[ , c("DischUnit", "ServiceLine", "Disposition", "IncludeUnitOrServiceLine")], factor)
 
 # Aggregate and format baseline data from Jan-Sep 2019 for future use --------------------------------
+comb_jansep19_subset <- comb_fy19_subset[comb_fy19_subset$DischYr == 2019 & comb_fy19_subset$DischMo <= 9, ]
+
 comb_jansep19_site_daily <- as.data.frame(comb_jansep19_subset %>%
-                                   group_by(Site, DischDate, DischDOW) %>%
-                                   summarize(TotalDisch = n()))
+                                            group_by(Site, DischDate, DischDOW) %>%
+                                            summarize(TotalDisch = n()))
 
 comb_jansep19_site_disch_dow <- as.data.frame(comb_jansep19_site_daily %>%
-                                       group_by(Site, DischDOW) %>%
-                                       summarize(TotalDischarges = as.numeric(sum(TotalDisch)), AverageDischarges = mean(TotalDisch)))
+                                                group_by(Site, DischDOW) %>%
+                                                summarize(TotalDischarges = as.numeric(sum(TotalDisch)), AverageDischarges = mean(TotalDisch)))
 
 # Total discharges by day of week for each site
 comb_jansep19_total_disch_dow <- dcast(comb_jansep19_site_disch_dow, Site ~DischDOW, value.var = "TotalDischarges")
-rownames(comb_jansep19_site_total_disch_dow) <- 1:nrow(comb_jansep19_site_total_disch_dow)
+rownames(comb_jansep19_total_disch_dow) <- 1:nrow(comb_jansep19_total_disch_dow)
 
 
 # Average discharges by day of week for each site
@@ -211,8 +218,8 @@ comb_jansep19_avg_disch_dow <- dcast(comb_jansep19_site_disch_dow, Site ~DischDO
 rownames(comb_jansep19_avg_disch_dow) <- 1:nrow(comb_jansep19_avg_disch_dow)
 
 comb_jansep19_avg_stats_summary <- cbind(comb_jansep19_avg_disch_dow, 
-                             WeekendTotal = round(comb_jansep19_avg_disch_dow$Sat + comb_jansep19_avg_disch_dow$Sun + comb_jansep19_avg_disch_dow$Mon, 0),
-                             TargetDelta = round(comb_jansep19_avg_disch_dow$Mon*0.1, 0))
+                                         WeekendTotal = round(comb_jansep19_avg_disch_dow$Sat + comb_jansep19_avg_disch_dow$Sun + comb_jansep19_avg_disch_dow$Mon, 0),
+                                         TargetDelta = round(comb_jansep19_avg_disch_dow$Mon*0.1, 0))
 
 comb_jansep19_avg_stats_summary$TargetTotal = round(comb_jansep19_avg_stats_summary$WeekendTotal, 0) + round(comb_jansep19_avg_stats_summary$TargetDelta, 0)
 
@@ -224,97 +231,8 @@ hosp_baseline_target <- comb_jansep19_avg_stats_summary[ , c("Site", "WeekendTot
 colnames(hosp_baseline_target) <- c("Site", "Weekend Baseline", "Target Change", "Weekend Target")
 
 
-# Data preprocessing and analysis for data after baseline period (Oct2019 onward) ----------------------------------------------------------
-# Preprocess most recent TSI data from Oct19 to YTD
-tsi_updates_output <- preprocess_tsi(tsi_raw_updates)
-tsi_updates_preprocessed <- tsi_updates_output[[1]]
-tsi_updates_include <- tsi_updates_output[[2]]
+site_fy19_total_disch_unit <- comb_fy19_subset %>%
+  group_by(Site, DischUnit) %>%
+  summarize(TotalDisch = n())
 
-# Subset Epic data for Oct-Dec19 (May need to change this later)
-epic_octdec19_include <- epic_fy19_include[epic_fy19_include$DischMo > 9 & epic_fy19_include$DischYr == 2019, ]
-
-epic_updates <- epic_octdec19_include
-
-
-
-tsi_updates_subset <- tsi_updates_include[tsi_updates_include$Site == "MSBI", c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx", 
-                                                                                   "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
-                                                                                   "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                                                   "Site", "DispoRollUp", "ServiceLineInclude", "Include", "Week_Num", "Weekend")]
-
-colnames(tsi_updates_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUnit",
-                                   "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
-                                   "DischYr", "DischMo", "DischHr", "DischDOW",
-                                   "Site", "Disposition", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
-
-epic_updates_subset <- epic_updates[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
-                                                   "DISPOSITION", "DBS", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
-                                                   "DischYr", "DischMo", "DischHr", "DischDOW", 
-                                                   "Site", "IncludeUnit", "Include", "Week_Num", "Weekend")]
-
-colnames(epic_updates_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
-                                    "Disposition", "ServiceLine", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
-                                    "DischYr", "DischMo", "DischHr", "DischDOW",
-                                    "Site", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
-
-tsi_updates_subset <- tsi_updates_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
-                                                "DischUnit", "ServiceLine", "Disposition", 
-                                                "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
-
-epic_updates_subset <- epic_updates_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
-                                                  "DischUnit", "ServiceLine", "Disposition", 
-                                                  "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                  "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
-
-
-
-
-
-# Track performance after RPI sessions began
-tsi_updates_subset$PostRPI <- tsi_updates_subset$DischDate >= rpi_start
-epic_updates_subset$PostRPI <- epic_updates_subset$DischDate >= rpi_start
-
-tsi_updates_subset <- tsi_updates_subset[tsi_updates_subset$PostRPI == TRUE, ]
-epic_updates_subset <- epic_updates_subset[epic_updates_subset$PostRPI == TRUE, ]
-
-
-
-
-
-# Determine RPI end date for TSI sites
-tsi_disch_date_df <- unique(tsi_updates_subset[ , c("DischDate", "DischDOW")])
-tsi_rpi_end <- max(tsi_disch_date_df[tsi_disch_date_df$DischDOW == "Fri", "DischDate"])
-
-tsi_updates_subset <- tsi_updates_subset[tsi_updates_subset$DischDate >= rpi_start &  tsi_updates_subset$DischDate <= tsi_rpi_end, ]
-
-
-epic_disch_date_df <- unique(epic_updates_subset[ , c("DischDate", "DischDOW")])
-epic_rpi_end <- max(epic_disch_date_df[epic_disch_date_df$DischDOW == "Mon", "DischDate"])
-epic_rpi_end <- max(epic_disch_date_df[epic_disch_date_df$DischDOW == "Fri", "DischDate"])
-
-epic_updates_subset <- epic_updates_subset[epic_updates_subset$DischDate >= rpi_start &  epic_updates_subset$DischDate <= epic_rpi_end, ]
-
-
-
-# Create daily list of discharges by site
-site_daily_disch_vol <- as.data.frame(comb_rpi_subset %>%
-                                        group_by(Site, DischDate, WeekNumber, DischDOW, Weekend, PostRPI) %>%
-                                        summarize(TotalDisch = n()))
-
-site_daily_disch_vol2 <- as.data.frame(comb_rpi_subset %>%
-                                        group_by(Site, DischUnit, Disposition, DischDate, WeekNumber, DischDOW, Weekend, PostRPI) %>%
-                                        summarize(TotalDisch = n()))
-
-
-# Create a list of week dates starting with Sat and ending with Fri
-week_num_dates <- as.data.frame(site_daily_disch_vol %>%
-                                  group_by(WeekNumber) %>%
-                                  summarize(SatDate = min(DischDate), FriDate = SatDate + 6, MonDate = SatDate + 2))
-
-week_num_dates[ , c("SatDate", "FriDate", "MonDate")] <- lapply(week_num_dates[ , c("SatDate", "FriDate", "MonDate")], format, "%m/%d/%y")
-
-week_num_dates$WeekOf <- paste0(week_num_dates$SatDate, "-", week_num_dates$FriDate)
-week_num_dates$WeekendOf <- paste0(week_num_dates$SatDate, "-", week_num_dates$MonDate)
-week_num_dates <- week_num_dates[ , c("WeekNumber", "SatDate", "WeekOf", "WeekendOf")]
-
+# write_xlsx(site_fy19_total_disch_unit, path = paste0("Units by Site\\FY19 Site Units and Disch Totals JanSep19 ", Sys.Date(), ".xlsx"))

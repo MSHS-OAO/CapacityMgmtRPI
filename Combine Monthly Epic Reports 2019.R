@@ -23,5 +23,5 @@ epic_raw_dec19 <- read_excel("Monthly Reports 2019 Updated Filters\\Discharge Ti
 
 epic_raw_2019 <- rbind(epic_raw_jan19, epic_raw_feb19, epic_raw_mar19, epic_raw_apr19, epic_raw_may19, epic_raw_jun19, epic_raw_jul19, epic_raw_aug19, epic_raw_sep19, epic_raw_oct19, epic_raw_nov19, epic_raw_dec19)
 
-write_xlsx(epic_raw_2019, path = paste0("Epic Discharge Timings Report FY2019  ", Sys.Date(), ".xlsx"))
+write_xlsx(epic_raw_2019, path = paste0("Epic Discharge Timings Report FY2019 ", Sys.Date(), ".xlsx"))
 

@@ -9,6 +9,7 @@ rm(list = ls())
 #install.packages("reshape2")
 #install.packages("svDialogs")
 #install.packages("stringr")
+#install.packages("formattable")
 
 #Analysis for weekend discharge tracking
 library(readxl)
@@ -19,6 +20,7 @@ library(dplyr)
 library(reshape2)
 library(svDialogs)
 library(stringr)
+library(formattable)
 
 # Set working directory and select raw data ----------------------------
 getwd()
@@ -217,7 +219,7 @@ preprocess_epic <- function(epic_raw_df) {
 # colnames(hosp_baseline_target) <- c("Site", "Weekend Baseline", "Target Change", "Weekend Target")
 # 
 # # Export baseline data for future use
-# baseline_outputs <- list("Baseline_EnctrLevel_Incl " = comb_jansep19_subset,
+# baseline_outputs <- list("Baseline_EnctrLevel_Incl" = comb_jansep19_subset,
 #                          "Baseline_Daily_Disch_Unit_Dispo" = baseline_site_dischunit_dispo_daily,
 #                          "Baseline_Total_Daily_Disch" = baseline_site_disch_daily,
 #                          "Baseline_Total_Avg_Disch_DOW" = baseline_site_total_avg_disch_dow,
@@ -231,6 +233,10 @@ preprocess_epic <- function(epic_raw_df) {
 sheet_names <- excel_sheets('Consolidated Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs 2020-01-28.xlsx')
 baseline_list <- lapply(sheet_names, function(x) read_excel(path = 'Consolidated Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs 2020-01-28.xlsx', sheet = x))
 names(baseline_list) <- sheet_names
+
+for (i in 1:length(sheet_names)) {
+  assign(sheet_names[i], baseline_list[[i]])
+}
 
 # Import data from after baseline period ------------------------------------------------
 # Data used to establish baseline and targets remains constant
@@ -344,4 +350,99 @@ week_num_dates[ , c("SatDate", "FriDate", "MonDate")] <- lapply(week_num_dates[ 
 week_num_dates$WeekOf <- paste0(week_num_dates$SatDate, "-", week_num_dates$FriDate)
 week_num_dates$WeekendOf <- paste0(week_num_dates$SatDate, "-", week_num_dates$MonDate)
 week_num_dates <- week_num_dates[ , c("WeekNumber", "SatDate", "WeekOf", "WeekendOf")]
+week_num_dates[ , c("SatDate", "WeekOf", "WeekendOf")] <- lapply(week_num_dates[ , c("SatDate", "WeekOf", "WeekendOf")], function(x) factor(x, levels = unique(x)))
 
+site_daily_disch_vol <- left_join(site_daily_disch_vol, week_num_dates, by = c("WeekNumber" = "WeekNumber"))
+
+wkday_daily_disch_vol <- site_daily_disch_vol[site_daily_disch_vol$Weekend != TRUE, ]
+wkend_daily_disch_vol <- site_daily_disch_vol[site_daily_disch_vol$Weekend == TRUE, ]
+
+wkend_summary_disch_vol <- as.data.frame(wkend_daily_disch_vol %>%
+                                           group_by(Site, WeekNumber, Weekend, SatDate, WeekOf, WeekendOf) %>%
+                                           summarize(DischDOW = "Sat-Mon", DischDate = min(DischDate), AvgDisch = mean(TotalDisch), TotalDisch = sum(TotalDisch)))
+
+wkday_summary_disch_vol <- as.data.frame(wkday_daily_disch_vol %>%
+                                           group_by(Site, WeekNumber, Weekend, SatDate, WeekOf, WeekendOf) %>%
+                                           summarize(DischDOW = "Tue-Fri", DischDate = min(DischDate), AvgDisch = mean(TotalDisch), TotalDisch = sum(TotalDisch)))
+
+# Create data frame summarizing weekend and weekday average and total discharges
+wkend_wkday_summary_disch_vol <- rbind(wkend_summary_disch_vol, wkday_summary_disch_vol)
+wkend_wkday_summary_disch_vol <- wkend_wkday_summary_disch_vol[order(wkend_wkday_summary_disch_vol$Site, wkend_wkday_summary_disch_vol$WeekNumber), ]
+rownames(wkend_wkday_summary_disch_vol) <- 1:nrow(wkend_wkday_summary_disch_vol)
+
+wkend_comb_disch_vol <- wkend_summary_disch_vol[ , c("Site", "WeekNumber", "SatDate", "WeekOf", "WeekendOf", "DischDate", "DischDOW", "Weekend", "TotalDisch")]
+wkday_daily_disch_vol <- wkday_daily_disch_vol[ , c("Site", "WeekNumber", "SatDate", "WeekOf", "WeekendOf", "DischDate", "DischDOW", "Weekend", "TotalDisch")]
+
+site_summary_daily_disch_vol <- rbind(wkend_comb_disch_vol, wkday_daily_disch_vol)
+site_summary_daily_disch_vol <- site_summary_daily_disch_vol[order(site_summary_daily_disch_vol$Site, site_summary_daily_disch_vol$WeekNumber, site_summary_daily_disch_vol$DischDate), ]
+site_summary_daily_disch_vol$DischDOW <- factor(site_summary_daily_disch_vol$DischDOW, levels = DischDOW_Order)
+rownames(site_summary_daily_disch_vol) <- 1:nrow(site_summary_daily_disch_vol)
+
+# Create a table with total weekend discharges for each site
+wkend_total_table <- dcast(wkend_comb_disch_vol, Site ~ WeekendOf, value.var = "TotalDisch")
+Site_Baseline_Targets$Site <- factor(Site_Baseline_Targets$Site, levels = site_order, ordered = TRUE)
+wkend_total_rpi_tracker <- left_join(Site_Baseline_Targets[ , c("Site", "Weekend Baseline", "Weekend Target")], wkend_total_table, by = c("Site" = "Site"))
+
+# Create a table to track weekly status including total discharges, % weekend discharges, avg weekday discharges, avg weekend discharges
+weekly_totals <- as.data.frame(site_summary_daily_disch_vol %>%
+                                 group_by(Site, WeekNumber, SatDate, WeekOf, WeekendOf) %>%
+                                 summarize(WkendTotal = sum(TotalDisch[Weekend == TRUE]), WklyTotal = sum(TotalDisch), WkendPercent = WkendTotal/WklyTotal, WkendAvg = TotalDisch[Weekend == TRUE]/3, WkdayAvg = mean(TotalDisch[Weekend != TRUE])))
+
+weekly_totals$WkendPercent[weekly_totals$WkendPercent == 1] <- NA
+weekly_totals$WkdayAvg[!is.finite(weekly_totals$WkdayAvg)] <- NA
+
+weekly_totals_format <- melt(weekly_totals, id.vars = c("Site", "WeekOf"), measure.vars = c("WklyTotal", "WkendPercent", "WkdayAvg", "WkendAvg"))
+weekly_totals_format <- dcast(weekly_totals_format, Site + variable ~ WeekOf, value.var = "value")
+
+# Create a summary table for each site
+site_weekly_table <- function(site) {
+  weekly_totals_format <- weekly_totals_format[weekly_totals_format$Site == site, ]
+  colnames(weekly_totals_format)[2] <- paste(site, "Metric")
+  rownames(weekly_totals_format) <- 1:nrow(weekly_totals_format)
+  weekly_totals_format[1, 3:ncol(weekly_totals_format)] <- round(weekly_totals_format[1, 3:ncol(weekly_totals_format)], digits = 0)
+  weekly_totals_format[2, 3:ncol(weekly_totals_format)] <- percent(weekly_totals_format[2, 3:ncol(weekly_totals_format)], digits = 1)
+  weekly_totals_format[3:4, 3:ncol(weekly_totals_format)] <- round(weekly_totals_format[3:4, 3:ncol(weekly_totals_format)], digits = 1)
+  return(weekly_totals_format)
+}
+                             
+msh_weekly_stats_table <- site_weekly_table("MSH")
+msq_weekly_stats_table <- site_weekly_table("MSQ")
+msbi_weekly_stats_table <- site_weekly_table("MSBI")
+msb_weekly_stats_table <- site_weekly_table("MSB")
+msw_weekly_stats_table <- site_weekly_table("MSW")
+mssl_weekly_stats_table <- site_weekly_table("MSSL")
+
+# Create list of tables to export to Excel
+export_list <- list("WeekendSummary" = wkend_total_rpi_tracker, 
+                    "MSH Weekly Stat" = msh_weekly_stats_table,
+                    "MSQ Weekly Stat" = msq_weekly_stats_table,
+                    "MSBI Weekly Stat" = msbi_weekly_stats_table,
+                    "MSB Weekly Stat" = msb_weekly_stats_table,
+                    "MSW Weekly Stat" = msw_weekly_stats_table,
+                    "MSSL Weekly Stat" = mssl_weekly_stats_table)
+
+# write_xlsx(export_table_list, path = paste0(output_location, "\\Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
+
+# Plot discharge trends by day of week for each site ---------------------------------------------------------
+sinai_colors <- c("#221f72", "#00AEEF", "#D80B8C", "#B2B3B2", "#C7C6EF", "#DDDEDD", "#FCC9E9")
+
+stacked_bar <- function(site) {
+  ggplot(data = site_summary_daily_disch_vol[site_summary_daily_disch_vol$Site == site, ]) +
+    geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
+             position = position_stack(reverse = TRUE)) +
+    labs(title = paste(site, "Weekly Discharges by DOW"), x = "Week Of", y = "Discharge Volume") +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+    guides(fill = guide_legend(reverse = FALSE, title = "Day of Week")) +
+    geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
+    geom_text(data = weekly_totals[weekly_totals$Site == site, ], aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5) +
+    scale_fill_manual(values = sinai_colors) +
+    scale_y_continuous(expand = c(0, 0, 0.1, 0))
+}
+
+stacked_bar("MSH")
+stacked_bar("MSQ")
+stacked_bar("MSBI")
+stacked_bar("MSB")
+stacked_bar("MSW")
+stacked_bar("MSSL")

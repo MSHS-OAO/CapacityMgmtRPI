@@ -29,11 +29,11 @@ setwd("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\
 # Set two parameters at beginning of script to specify data update scenario
 # initial_run: Select TRUE if this is the initial run. 
 # During the initial run, the baseline data will be preprocessed and exported for future use and the initial repository of Epic data will be created. The Epic repo will be updated in subsequent runs.
-initial_run <- TRUE 
+initial_run <- FALSE 
 
 # new_epic_data: Select TRUE if new week's worth of Epic data has been received and the Epic repository needs to be updated. This will typically happen on Tuesdays. 
 # If only TSI data has been updated, then this is set to FALSE
-new_epic_data <- TRUE
+new_epic_data <- FALSE
 
 # Reference files and constants ----------------------------------------
 ref_file <- "Analysis Reference\\Epic and TSI Data Analysis Reference 2020-01-21.xlsx"
@@ -247,7 +247,7 @@ if (initial_run == TRUE) {
   }
   
   # Export baseline outputs to Excel to be imported for future runs
-  write_xlsx(baseline_outputs, path = paste0('Consolidated Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs ', Sys.Date(), '.xlsx'))
+  write_xlsx(baseline_list, path = paste0('Consolidated Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs ', Sys.Date(), '.xlsx'))
   
   # Preprocess historical Epic data and export to begin creating historical repository to be used for future runs -----------------------------
   # Import and bind monthly Epic data files
@@ -291,24 +291,31 @@ if (initial_run == TRUE) {
                                                      summarize(TotalDisch = n()))
   
   # Export historical data to Excel to begin creating repository
-  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Consolidated Script Data Outputs\\Epic Discharge Summary Repository ', rpi_start, ' to ', epic_rpid_end, 'Updated ',  '.xlsx'))
-} else if (new_epic_data == TRUE) {
+  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Consolidated Script Data Outputs\\Epic Discharge Repository ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
   
-  # Import preprocessed baseline data --------------------------------------
-  sheet_names <- excel_sheets('Consolidated Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs 2020-01-28.xlsx')
-  baseline_list <- lapply(sheet_names, function(x) read_excel(path = 'Consolidated Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs 2020-01-28.xlsx', sheet = x))
+  # Resave summarized data as historical repository
+  epic_hist_repo <- epic_site_dischunit_dispo_daily
+  
+} else {
+  # Import preprocessed baseline data ------------------------------------------
+  baseline_data_file <- choose.files(".\\Consolidated Script Data Outputs", caption = "Select Excel file with preprocessed data for baseline period")
+  sheet_names <- excel_sheets(baseline_data_file)
+  baseline_list <- lapply(sheet_names, function(x) read_excel(baseline_data_file, sheet = x))
   names(baseline_list) <- sheet_names
   
   for (i in 1:length(sheet_names)) {
     assign(sheet_names[i], baseline_list[[i]])
   }
   
-  # Import Epic historical repository -------------------------------------
-  epic_hist_repo <- read_excel(choose.files(caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
-  
+  # Import Epic historical repository ------------------------------------------
+  epic_hist_repo <- read_excel(choose.files(".\\Consolidated Script Data Outputs", caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
+
+}
+
+if (new_epic_data == TRUE) {
   # Preprocess weekly report and bind with historical data for future runs ------------------------------------
   # Import this week's Epic report
-  epic_raw_updates <- read_excel(choose.files(caption = "Select Epic report with discharges for past week"), col_names = TRUE, na = c("", "NA"))
+  epic_raw_updates <- read_excel(choose.files(".\\Epic Daily Discharge Timing Reports\\Updated Reports", caption = "Select Epic report with discharges for past week"), col_names = TRUE, na = c("", "NA"))
   
   # Preprocess this week's Epic report
   epic_updates_output <- preprocess_epic(epic_raw_updates)
@@ -350,30 +357,17 @@ if (initial_run == TRUE) {
   
   # Bind historical repository and this week's update
   epic_site_dischunit_dispo_daily <- rbind(epic_hist_repo, epic_site_dischunit_dispo_daily)
+  # Ensure there are no duplicate entries
+  epic_site_dischunit_dispo_daily <- unique(epic_site_dischunit_dispo_daily)
   
   # Update historical repository with most recent data
-  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Consolidated Script Data Outputs\\Epic Discharge Summary Repository ', rpi_start, ' to ', epic_rpid_end, 'Updated ', Sys.Date(), '.xlsx'))
+  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Consolidated Script Data Outputs\\Epic Discharge Repository ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
   
 } else {
-  
-  # Import preprocessed baseline data --------------------------------------
-  sheet_names <- excel_sheets('Consolidated Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs 2020-01-28.xlsx')
-  baseline_list <- lapply(sheet_names, function(x) read_excel(path = 'Consolidated Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs 2020-01-28.xlsx', sheet = x))
-  names(baseline_list) <- sheet_names
-  
-  for (i in 1:length(sheet_names)) {
-    assign(sheet_names[i], baseline_list[[i]])
-  }
-  
-  # Import Epic historical repository -------------------------------------
-  epic_hist_repo <- read_excel(choose.files(caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
   epic_site_dischunit_dispo_daily <- epic_hist_repo
-  
-  
-  
 }
 
-# Import data from after baseline period ------------------------------------------------
+# Import TSI data from after baseline period ------------------------------------------------
 # Data used to establish baseline and targets remains constant
 tsi_raw_octdec19 <- read.csv("Discharge Billing Data\\MSBI Data Pulls\\MSBI Discharges Oct-Dec2019 2020-01-22.csv", header = TRUE, na.strings = c("", "NA"), stringsAsFactors = FALSE)
 tsi_raw_ytd20 <- read.csv(choose.files(caption = "Select 2020 YTD TSI report for MSBI"), header = TRUE, na.strings = c("", "NA"), stringsAsFactors = FALSE)

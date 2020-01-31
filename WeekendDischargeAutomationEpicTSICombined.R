@@ -476,8 +476,14 @@ weekly_totals <- as.data.frame(site_summary_daily_disch_vol %>%
 weekly_totals$WkendPercent[weekly_totals$WkendPercent == 1] <- NA
 weekly_totals$WkdayAvg[!is.finite(weekly_totals$WkdayAvg)] <- NA
 
+weekly_totals_format <- weekly_totals
+weekly_totals_format$WkendPercent <- percent(weekly_totals_format$WkendPercent, digits = 1)
+weekly_totals_format[ , c("WkdayAvg", "WkendAvg")] <- lapply(weekly_totals_format[ , c("WkdayAvg", "WkendAvg")], round, digits = 1)
+
+
 weekly_totals_format <- melt(weekly_totals, id.vars = c("Site", "WeekOf"), measure.vars = c("WklyTotal", "WkendPercent", "WkdayAvg", "WkendAvg"))
 weekly_totals_format <- dcast(weekly_totals_format, Site + variable ~ WeekOf, value.var = "value")
+
 
 # Create a summary table for each site
 site_weekly_table <- function(site) {
@@ -533,3 +539,59 @@ stacked_bar("MSBI")
 stacked_bar("MSB")
 stacked_bar("MSW")
 stacked_bar("MSSL")
+
+weekend_trend <- function(site) {
+  trends_lookback <- 12
+  trends_first_week <- max(wkend_comb_disch_vol$WeekNumber[wkend_comb_disch_vol$Site == site], na.rm = TRUE) - trends_lookback + 1
+  ggplot(data = wkend_comb_disch_vol[(wkend_comb_disch_vol$Site == site) & (wkend_comb_disch_vol$WeekNumber >= trends_first_week), ]) +
+    
+    geom_hline(aes(yintercept = Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
+    geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site]), vjust = -0.5, hjust = -0.25) +
+    
+    geom_hline(aes(yintercept = Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site], color = "Target", linetype = "Target")) +
+    geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site]),  vjust = -0.5, hjust = -0.25) +
+    
+    geom_line(mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
+    geom_point(mapping = aes(x = SatDate, y = TotalDisch), color = "#00AEEF", size = 1.5) +
+    geom_text(mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = -0.25) +
+    
+    labs(title = paste(site, "Weekend Discharges: 12 Week Lookback"), x = "Week Of", y = "Discharge Volume") +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", axis.text.x = element_text(angle = 30, hjust = 1)) +
+    
+    scale_x_discrete(expand = c(0, 0, 0.05, 0.5)) +
+    scale_y_continuous(expand = c(0, 5, 0.2, 0.5)) +
+    
+    scale_linetype_manual(name = "", values = c("Baseline" = "dashed",
+                                                "Target" = "solid",
+                                                "Actual" = "solid")) +
+    
+    scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c",
+                                             "Target" = "black",
+                                             "Actual" = "#00AEEF"))
+}
+
+weekend_trend(site = "MSH")
+weekend_trend(site = "MSQ")
+weekend_trend(site = "MSBI")
+weekend_trend(site = "MSB")
+weekend_trend(site = "MSW")
+weekend_trend(site = "MSSL")
+
+formattable(mssl_weekly_stats_table)
+
+mssl_weekly_stats_table_out <- mssl_weekly_stats_table[2:nrow(mssl_weekly_stats_table), ]
+rownames(mssl_weekly_stats_table_out) <- 1:nrow(mssl_weekly_stats_table_out)
+
+mssl_weekly_stats_table_out$`MSSL Metric` <- c("Weekend Disch as % Total Disch", "Avg. Daily Disch: Weekday", "Avg. Daily Disch: Weekend")
+mssl_weekly_stats_table_out$Site <- NULL
+mssl_weekly_stats_table_out[1, 1] <- percent(mssl_weekly_stats_table_out[1, 1], digits = 0)
+
+mssl_weekly_totals <- weekly_totals_format[weekly_totals_format$Site == "MSSL", ]
+mssl_table1 <- melt(mssl_weekly_totals, id.vars = c("Site", "WeekOf"), measure.vars = "WklyTotal")
+mssl_table1 <- dcast(mssl_table1, Site +variable ~ WeekOf, value.var = "value")
+
+mssl_table2 <- melt(mssl_weekly_totals, id.vars = c("Site", "WeekOf"), measure.vars = "WkendPercent")
+mssl_table2 <- dcast(mssl_table2[1:(nrow(mssl_table2)-1), ], variable ~ WeekOf, value.var = "value")
+
+formattable(mssl_table2)

@@ -506,21 +506,23 @@ export_list <- list("WeekendSummary" = wkend_total_rpi_tracker,
                     "MSW Weekly Stat" = msw_weekly_stats_table,
                     "MSSL Weekly Stat" = mssl_weekly_stats_table)
 
-# write_xlsx(export_table_list, path = paste0(output_location, "\\Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
+write_xlsx(export_table_list, path = paste0(output_location, "\\Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
 
 # Plot discharge trends by day of week for each site ---------------------------------------------------------
 sinai_colors <- c("#221f72", "#00AEEF", "#D80B8C", "#B2B3B2", "#C7C6EF", "#DDDEDD", "#FCC9E9")
 
 stacked_bar <- function(site) {
-  ggplot(data = site_summary_daily_disch_vol[site_summary_daily_disch_vol$Site == site, ]) +
+  bar_lookback <- 8 # Use 8 week lookback for stacked bar graph
+  bar_first_week <- max(site_summary_daily_disch_vol$WeekNumber[site_summary_daily_disch_vol$Site == site]) - bar_lookback + 1
+  ggplot(data = site_summary_daily_disch_vol[site_summary_daily_disch_vol$Site == site & site_summary_daily_disch_vol$WeekNumber >= bar_first_week, ]) +
     geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
              position = position_stack(reverse = TRUE)) +
-    labs(title = paste(site, "Weekly Discharges by DOW"), x = "Week Of", y = "Discharge Volume") +
+    labs(title = paste(site, "Discharges by DOW: 8 Week Lookback"), x = "Week Of", y = "Discharge Volume") +
     theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", axis.text.x = element_text(angle = 30, hjust = 1)) +
     guides(fill = guide_legend(reverse = FALSE, title = "Day of Week")) +
     geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5)) +
-    geom_text(data = weekly_totals[weekly_totals$Site == site, ], aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5) +
+    geom_text(data = weekly_totals[weekly_totals$Site == site & weekly_totals$WeekNumber >= bar_first_week, ], aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5) +
     scale_fill_manual(values = sinai_colors) +
     scale_y_continuous(expand = c(0, 0, 0.1, 0))
 }

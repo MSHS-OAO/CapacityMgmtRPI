@@ -49,7 +49,7 @@ DischDOW_Order <- c("Sat-Mon", "Tue", "Wed", "Thu", "Fri")
 
 rpi_start <- as.Date("10/26/2019", "%m/%d/%Y")
 
-graphs_tables_output_location <- choose.dir(caption = "Select folder to save graphs and tables", default = "J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Epic TSI Comb Script Data Outputs\\Graphs and Tables")
+graphs_tables_output_location <- choose.dir(caption = "Select folder to save graphs and tables", default = "J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Script Graphs and Tables")
 
 # Function to determine week number of year using Sat as first DOW --------------------------------------------------
 weeknum <- function(x) {
@@ -260,7 +260,7 @@ if (initial_run == TRUE) {
   }
   
   # Export baseline outputs to Excel to be imported for future runs
-  write_xlsx(baseline_list, path = paste0('Epic TSI Comb Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs ', Sys.Date(), '.xlsx'))
+  write_xlsx(baseline_list, path = paste0('Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs ', Sys.Date(), '.xlsx'))
   
   # Preprocess historical Epic data and export to begin creating historical repository to be used for future runs -----------------------------
   # Import and bind monthly Epic data files
@@ -290,14 +290,14 @@ if (initial_run == TRUE) {
                                                      summarize(TotalDisch = n()))
   
   # Export historical data to Excel to begin creating repository
-  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Epic TSI Comb Script Data Outputs\\Epic Discharge Repository\\Epic Discharge Repository ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
+  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Script Data Outputs\\Epic Repo\\Disch Repo ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
   
   # Resave summarized data as historical repository
   epic_hist_repo <- epic_site_dischunit_dispo_daily
   
 } else {
   # Import preprocessed baseline data ------------------------------------------
-  baseline_data_file <- choose.files(".\\Epic TSI Comb Script Data Outputs", caption = "Select Excel file with preprocessed data for baseline period")
+  baseline_data_file <- choose.files(".\\Script Data Outputs", caption = "Select Excel file with preprocessed data for baseline period")
   sheet_names <- excel_sheets(baseline_data_file)
   baseline_list <- lapply(sheet_names, function(x) read_excel(baseline_data_file, sheet = x))
   names(baseline_list) <- sheet_names
@@ -308,7 +308,7 @@ if (initial_run == TRUE) {
   
   # Import Epic historical repository ------------------------------------------
   getwd()
-  epic_hist_repo <- read_excel(choose.files(".\\Epic TSI Comb Script Data Outputs\\Epic Discharge Repository", caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
+  epic_hist_repo <- read_excel(choose.files(".\\Script Data Outputs\\Epic Repo", caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
 
 }
 
@@ -346,7 +346,7 @@ if (new_epic_data == TRUE) {
   epic_site_dischunit_dispo_daily <- unique(epic_site_dischunit_dispo_daily)
   
   # Update historical repository with most recent data
-  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Epic TSI Comb Script Data Outputs\\Epic Discharge Repository\\Epic Discharge Repository ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
+  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Script Data Outputs\\Epic Repo\\Disch Repo ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
   
 } else {
   epic_site_dischunit_dispo_daily <- epic_hist_repo
@@ -478,7 +478,7 @@ export_list <- list("WeekendSummary" = wkend_total_rpi_tracker,
                     "MSW Weekly Stat" = msw_weekly_stats_table,
                     "MSSL Weekly Stat" = mssl_weekly_stats_table)
 
-write_xlsx(export_list, path = paste0(graphs_tables_output_location, "Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
+write_xlsx(export_list, path = paste0(graphs_tables_output_location, "\\Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
 
 # Plot discharge trends by day of week for each site ---------------------------------------------------------
 sinai_colors <- c("#221f72", "#00AEEF", "#D80B8C", "#B2B3B2", "#C7C6EF", "#DDDEDD", "#FCC9E9")
@@ -513,12 +513,12 @@ msb_stacked_bar_dow <- stacked_bar("MSB")
 msw_stacked_bar_dow <- stacked_bar("MSW")
 mssl_stacked_bar_dow <- stacked_bar("MSSL")
 
-ggsave(path = graphs_tables_output_location, file = paste("MSH Stacked Bar DOW", Sys.Date(), ".png"), plot = msh_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSQ Stacked Bar DOW", Sys.Date(), ".png"), plot = msq_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSBI Stacked Bar DOW", Sys.Date(), ".png"), plot = msbi_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSB Stacked Bar DOW", Sys.Date(), ".png"), plot = msb_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSW Stacked Bar DOW", Sys.Date(), ".png"), plot = msw_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSSL Stacked Bar DOW", Sys.Date(), ".png"), plot = mssl_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSH Stacked Bar DOW 3", Sys.Date(), ".png"), plot = msh_stacked_bar_dow, device = "png", width = 4.6, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSQ Stacked Bar DOW", Sys.Date(), ".png"), plot = msq_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSBI Stacked Bar DOW", Sys.Date(), ".png"), plot = msbi_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSB Stacked Bar DOW", Sys.Date(), ".png"), plot = msb_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSW Stacked Bar DOW", Sys.Date(), ".png"), plot = msw_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSSL Stacked Bar DOW", Sys.Date(), ".png"), plot = mssl_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 
 weekend_trend <- function(site) {
   trends_lookback <- 12
@@ -565,12 +565,12 @@ msb_graph_wkendtrend <- weekend_trend("MSB")
 msw_graph_wkendtrend <- weekend_trend("MSW")
 mssl_graph_wkendtrend <- weekend_trend("MSSL")
 
-ggsave(path = graphs_tables_output_location, file = paste("MSH Weekend Discharge Trends", Sys.Date(), ".png"), plot = msh_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSQ Weekend Discharge Trends", Sys.Date(), ".png"), plot = msq_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSBI Weekend Discharge Trends", Sys.Date(), ".png"), plot = msbi_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSB Weekend Discharge Trends", Sys.Date(), ".png"), plot = msb_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSW Weekend Discharge Trends", Sys.Date(), ".png"), plot = msw_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSSL Weekend Discharge Trends", Sys.Date(), ".png"), plot = mssl_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSH Weekend Discharge Trends", Sys.Date(), ".png"), plot = msh_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSQ Weekend Discharge Trends", Sys.Date(), ".png"), plot = msq_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSBI Weekend Discharge Trends", Sys.Date(), ".png"), plot = msbi_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSB Weekend Discharge Trends", Sys.Date(), ".png"), plot = msb_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSW Weekend Discharge Trends", Sys.Date(), ".png"), plot = msw_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSSL Weekend Discharge Trends", Sys.Date(), ".png"), plot = mssl_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 
 
 

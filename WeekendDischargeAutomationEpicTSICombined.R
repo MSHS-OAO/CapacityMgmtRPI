@@ -49,6 +49,8 @@ DischDOW_Order <- c("Sat-Mon", "Tue", "Wed", "Thu", "Fri")
 
 rpi_start <- as.Date("10/26/2019", "%m/%d/%Y")
 
+graphs_tables_output_location <- choose.dir(caption = "Select folder to save graphs and tables", default = "J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Epic TSI Comb Script Data Outputs\\Graphs and Tables")
+
 # Function to determine week number of year using Sat as first DOW --------------------------------------------------
 weeknum <- function(x) {
   # yr <<- year(x)
@@ -97,8 +99,27 @@ preprocess_tsi <- function(tsi_raw_df) {
   tsi_raw_df$Week_Num <- weeknum(tsi_raw_df$DischDate)
   tsi_raw_df$Weekend <- ifelse(tsi_raw_df$DischDOW == "Sat" | tsi_raw_df$DischDOW == "Sun" | tsi_raw_df$DischDOW == "Mon", TRUE, FALSE)
   
+  # Subset only data that meets include criteria
+  tsi_raw_df_include <- tsi_raw_df[tsi_raw_df$Include == TRUE, ]
+  
+  # Further subset desired columns and reorganize these columsn for master dataframes
+  tsi_raw_df_subset <- tsi_raw_df_include[ , c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx",
+                                                   "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
+                                                   "DischYr", "DischMo", "DischHr", "DischDOW",
+                                                   "Site", "DispoRollUp", "ServiceLineInclude", "Include", "Week_Num", "Weekend")]
+  
+  colnames(tsi_raw_df_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUnit",
+                                     "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
+                                     "DischYr", "DischMo", "DischHr", "DischDOW",
+                                     "Site", "Disposition", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
+  
+  tsi_raw_df_subset <- tsi_raw_df_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
+                                                  "DischUnit", "ServiceLine", "Disposition",
+                                                  "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
+                                                  "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
+  
   # Create output list with preprocessed data and preprocessed data to be included  --------------------------------
-  tsi_output <- list(tsi_raw_df, tsi_raw_df[tsi_raw_df$Include == TRUE, ])
+  tsi_output <- list(tsi_raw_df, tsi_raw_df_include, tsi_raw_df_subset)
   return(tsi_output)
 }
 
@@ -130,8 +151,27 @@ preprocess_epic <- function(epic_raw_df) {
   epic_raw_df$Week_Num <- weeknum(epic_raw_df$DischDate)
   epic_raw_df$Weekend <- ifelse(epic_raw_df$DischDOW == "Sat" | epic_raw_df$DischDOW == "Sun" | epic_raw_df$DischDOW == "Mon", TRUE, FALSE)
   
+  # Subset only data that meets include criteria
+  epic_raw_df_include <- epic_raw_df[epic_raw_df$Include == TRUE, ]
+  
+  # Further subset desired columns and reorganize these columsn for master dataframes
+  epic_raw_df_subset <- epic_raw_df_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
+                                                   "DISPOSITION", "DBS", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
+                                                   "DischYr", "DischMo", "DischHr", "DischDOW",
+                                                   "Site", "IncludeUnit", "Include", "Week_Num", "Weekend")]
+  
+  colnames(epic_raw_df_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
+                                     "Disposition", "ServiceLine", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
+                                     "DischYr", "DischMo", "DischHr", "DischDOW",
+                                     "Site", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
+  
+  epic_raw_df_subset <- epic_raw_df_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
+                                                  "DischUnit", "ServiceLine", "Disposition",
+                                                  "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
+                                                  "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
+  
   # Create output list with preprocessed data and preprocessed data to be included  --------------------------------
-  epic_output <- list(epic_raw_df, epic_raw_df[epic_raw_df$Include == TRUE, ])
+  epic_output <- list(epic_raw_df, epic_raw_df_include, epic_raw_df_subset)
   return(epic_output)
 }
 
@@ -146,42 +186,15 @@ if (initial_run == TRUE) {
   tsi_baseline_output <- preprocess_tsi(tsi_raw_baseline)
   tsi_baseline_preprocessed <- tsi_baseline_output[[1]]
   tsi_baseline_include <- tsi_baseline_output[[2]]
-  tsi_jansep19_include <- tsi_baseline_include[tsi_baseline_include$Site == "MSBI" & tsi_baseline_include$DischMo <= 9, ]
+  tsi_baseline_subset <- tsi_baseline_output[[3]]
+  
+  # Subset dataframes with relevant columns
+  tsi_jansep19_subset <- tsi_baseline_subset[tsi_baseline_subset$Site == "MSBI" & tsi_baseline_subset$DischMo <= 9, ]
 
   epic_jansep19_output <- preprocess_epic(epic_raw_jansep19)
   epic_jansep19_preprocessed <- epic_jansep19_output[[1]]
   epic_jansep19_include <- epic_jansep19_output[[2]]
-
-  # Subset TSI and Epic data with columns to be included in master dataframe
-  tsi_jansep19_subset <- tsi_jansep19_include[ , c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx",
-                                                   "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
-                                                   "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                   "Site", "DispoRollUp", "ServiceLineInclude", "Include", "Week_Num", "Weekend")]
-
-  colnames(tsi_jansep19_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUnit",
-                                     "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
-                                     "DischYr", "DischMo", "DischHr", "DischDOW",
-                                     "Site", "Disposition", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
-
-  epic_jansep19_subset <- epic_jansep19_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
-                                                     "DISPOSITION", "DBS", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
-                                                     "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                     "Site", "IncludeUnit", "Include", "Week_Num", "Weekend")]
-
-  colnames(epic_jansep19_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
-                                      "Disposition", "ServiceLine", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
-                                      "DischYr", "DischMo", "DischHr", "DischDOW",
-                                      "Site", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
-
-  tsi_jansep19_subset <- tsi_jansep19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
-                                                  "DischUnit", "ServiceLine", "Disposition",
-                                                  "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                  "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
-
-  epic_jansep19_subset <- epic_jansep19_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
-                                                  "DischUnit", "ServiceLine", "Disposition",
-                                                  "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                  "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
+  epic_jansep19_subset <- epic_jansep19_output[[3]]
 
   # Combine data from both reporting systems for baseline period into one dataframe
   comb_jansep19_subset <- rbind(tsi_jansep19_subset, epic_jansep19_subset)
@@ -247,7 +260,7 @@ if (initial_run == TRUE) {
   }
   
   # Export baseline outputs to Excel to be imported for future runs
-  write_xlsx(baseline_list, path = paste0('Consolidated Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs ', Sys.Date(), '.xlsx'))
+  write_xlsx(baseline_list, path = paste0('Epic TSI Comb Script Data Outputs\\Baseline Data Jan-Sep 2019 Outputs ', Sys.Date(), '.xlsx'))
   
   # Preprocess historical Epic data and export to begin creating historical repository to be used for future runs -----------------------------
   # Import and bind monthly Epic data files
@@ -259,22 +272,8 @@ if (initial_run == TRUE) {
   epic_updates_output <- preprocess_epic(epic_raw_updates)
   epic_updates_preprocessed <- epic_updates_output[[1]]
   epic_updates_include <- epic_updates_output[[2]]
+  epic_updates_subset <- epic_updates_output[[3]]
   
-  # Subset Epic data and reorganize columns
-  epic_updates_subset <- epic_updates_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
-                                                   "DISPOSITION", "DBS", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
-                                                   "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                   "Site", "IncludeUnit", "Include", "Week_Num", "Weekend")]
-  
-  colnames(epic_updates_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
-                                     "Disposition", "ServiceLine", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
-                                     "DischYr", "DischMo", "DischHr", "DischDOW",
-                                     "Site", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
-  
-  epic_updates_subset <- epic_updates_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
-                                                  "DischUnit", "ServiceLine", "Disposition",
-                                                  "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                  "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
   # Determine whether discharge occurred after RPI cycles began
   epic_updates_subset$PostRPI <- epic_updates_subset$DischDate >= rpi_start
   epic_updates_subset <- epic_updates_subset[epic_updates_subset$PostRPI == TRUE, ]
@@ -291,14 +290,14 @@ if (initial_run == TRUE) {
                                                      summarize(TotalDisch = n()))
   
   # Export historical data to Excel to begin creating repository
-  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Consolidated Script Data Outputs\\Epic Discharge Repository ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
+  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Epic TSI Comb Script Data Outputs\\Epic Discharge Repository\\Epic Discharge Repository ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
   
   # Resave summarized data as historical repository
   epic_hist_repo <- epic_site_dischunit_dispo_daily
   
 } else {
   # Import preprocessed baseline data ------------------------------------------
-  baseline_data_file <- choose.files(".\\Consolidated Script Data Outputs", caption = "Select Excel file with preprocessed data for baseline period")
+  baseline_data_file <- choose.files(".\\Epic TSI Comb Script Data Outputs", caption = "Select Excel file with preprocessed data for baseline period")
   sheet_names <- excel_sheets(baseline_data_file)
   baseline_list <- lapply(sheet_names, function(x) read_excel(baseline_data_file, sheet = x))
   names(baseline_list) <- sheet_names
@@ -308,7 +307,8 @@ if (initial_run == TRUE) {
   }
   
   # Import Epic historical repository ------------------------------------------
-  epic_hist_repo <- read_excel(choose.files(".\\Consolidated Script Data Outputs", caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
+  getwd()
+  epic_hist_repo <- read_excel(choose.files(".\\Epic TSI Comb Script Data Outputs\\Epic Discharge Repository", caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
 
 }
 
@@ -321,22 +321,7 @@ if (new_epic_data == TRUE) {
   epic_updates_output <- preprocess_epic(epic_raw_updates)
   epic_updates_preprocessed <- epic_updates_output[[1]]
   epic_updates_include <- epic_updates_output[[2]]
-  
-  # Subset Epic data and reorganize columns
-  epic_updates_subset <- epic_updates_include[ , c("VISIT ID", "MRN", "DISCHARGE UNIT", "HOSP DISCHARGE TIME",
-                                                   "DISPOSITION", "DBS", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
-                                                   "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                   "Site", "IncludeUnit", "Include", "Week_Num", "Weekend")]
-  
-  colnames(epic_updates_subset) <- c("EncounterNo", "MRN", "DischUnit", "DischDateTime",
-                                     "Disposition", "ServiceLine", "AdmitDate", "DischDate", "AdmitYr", "AdmitMo",
-                                     "DischYr", "DischMo", "DischHr", "DischDOW",
-                                     "Site", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
-  
-  epic_updates_subset <- epic_updates_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
-                                                  "DischUnit", "ServiceLine", "Disposition",
-                                                  "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                  "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
+  epic_updates_subset <- epic_updates_output[[3]]
   
   # Determine whether discharge occurred after RPI cycles began
   epic_updates_subset$PostRPI <- epic_updates_subset$DischDate >= rpi_start
@@ -361,7 +346,7 @@ if (new_epic_data == TRUE) {
   epic_site_dischunit_dispo_daily <- unique(epic_site_dischunit_dispo_daily)
   
   # Update historical repository with most recent data
-  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Consolidated Script Data Outputs\\Epic Discharge Repository ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
+  write_xlsx(epic_site_dischunit_dispo_daily, path = paste0('Epic TSI Comb Script Data Outputs\\Epic Discharge Repository\\Epic Discharge Repository ', rpi_start, ' to ', epic_rpi_end, ' Updated ', Sys.Date(), '.xlsx'))
   
 } else {
   epic_site_dischunit_dispo_daily <- epic_hist_repo
@@ -378,25 +363,10 @@ tsi_raw_updates <- rbind(tsi_raw_octdec19, tsi_raw_ytd20)
 tsi_updates_output <- preprocess_tsi(tsi_raw_updates)
 tsi_updates_preprocessed <- tsi_updates_output[[1]]
 tsi_updates_include <- tsi_updates_output[[2]]
+tsi_updates_subset <- tsi_updates_output[[3]]
 
 # Subset dataframes with relevant columns
-tsi_updates_subset <- tsi_updates_include[tsi_updates_include$Site == "MSBI", c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx",
-                                                                                   "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
-                                                                                   "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                                                   "Site", "DispoRollUp", "ServiceLineInclude", "Include", "Week_Num", "Weekend")]
-
-colnames(tsi_updates_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUnit",
-                                   "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
-                                   "DischYr", "DischMo", "DischHr", "DischDOW",
-                                   "Site", "Disposition", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
-
-
-tsi_updates_subset <- tsi_updates_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
-                                                "DischUnit", "ServiceLine", "Disposition",
-                                                "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
-                                                "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
-
-
+tsi_updates_subset <- tsi_updates_subset[tsi_updates_subset$Site == "MSBI", ]
 
 # Determine whether discharge occurred after RPI cycles began
 tsi_updates_subset$PostRPI <- tsi_updates_subset$DischDate >= rpi_start
@@ -476,32 +446,28 @@ weekly_totals <- as.data.frame(site_summary_daily_disch_vol %>%
 weekly_totals$WkendPercent[weekly_totals$WkendPercent == 1] <- NA
 weekly_totals$WkdayAvg[!is.finite(weekly_totals$WkdayAvg)] <- NA
 
-weekly_totals_format <- weekly_totals
-weekly_totals_format$WkendPercent <- percent(weekly_totals_format$WkendPercent, digits = 1)
-weekly_totals_format[ , c("WkdayAvg", "WkendAvg")] <- lapply(weekly_totals_format[ , c("WkdayAvg", "WkendAvg")], round, digits = 1)
-
-
-weekly_totals_format <- melt(weekly_totals, id.vars = c("Site", "WeekOf"), measure.vars = c("WklyTotal", "WkendPercent", "WkdayAvg", "WkendAvg"))
-weekly_totals_format <- dcast(weekly_totals_format, Site + variable ~ WeekOf, value.var = "value")
-
-
-# Create a summary table for each site
-site_weekly_table <- function(site) {
-  weekly_totals_format <- weekly_totals_format[weekly_totals_format$Site == site, ]
-  colnames(weekly_totals_format)[2] <- paste(site, "Metric")
-  rownames(weekly_totals_format) <- 1:nrow(weekly_totals_format)
-  weekly_totals_format[1, 3:ncol(weekly_totals_format)] <- round(weekly_totals_format[1, 3:ncol(weekly_totals_format)], digits = 0)
-  weekly_totals_format[2, 3:ncol(weekly_totals_format)] <- percent(weekly_totals_format[2, 3:ncol(weekly_totals_format)], digits = 1)
-  weekly_totals_format[3:4, 3:ncol(weekly_totals_format)] <- round(weekly_totals_format[3:4, 3:ncol(weekly_totals_format)], digits = 1)
-  return(weekly_totals_format)
+site_weekly_stats_tracker <- function(site) {
+  weekly_totals_format2 <- weekly_totals[weekly_totals$Site == site, ]
+  weekly_totals_format2$WklyTotal <- as.integer(weekly_totals_format2$WklyTotal)
+  weekly_totals_format2$WkendPercent <- percent(weekly_totals_format2$WkendPercent, digits = 0)
+  weekly_totals_format2[ , c("WkdayAvg", "WkendAvg")] <- round(weekly_totals_format2[ , c("WkdayAvg", "WkendAvg")], digits = 1)
+  weekly_totals_format2[ , c("WklyTotal", "WkendPercent", "WkdayAvg", "WkendAvg")] <- lapply(weekly_totals_format2[ , c("WklyTotal", "WkendPercent", "WkdayAvg", "WkendAvg")], 
+                                                                                             function(x) ifelse(!is.na(x), as.character(x), x))
+  weekly_stats_tracker <- melt(weekly_totals_format2, id.vars = c("Site", "WeekOf"), measure.vars = c("WklyTotal", "WkendPercent", "WkdayAvg", "WkendAvg"))
+  weekly_stats_tracker <- dcast(weekly_stats_tracker, Site + variable ~ WeekOf, value.var = "value")
+  
+  colnames(weekly_stats_tracker)[2] <- "Metric"
+  
+  weekly_stats_tracker$Metric <- c("Total Weekly Disch", "Weekend Disch as % of Total Weekly Disch", "Avg Daily Disch: Weekday", "Avg Daily Disch: Weekend")
+  return(weekly_stats_tracker)
 }
                              
-msh_weekly_stats_table <- site_weekly_table("MSH")
-msq_weekly_stats_table <- site_weekly_table("MSQ")
-msbi_weekly_stats_table <- site_weekly_table("MSBI")
-msb_weekly_stats_table <- site_weekly_table("MSB")
-msw_weekly_stats_table <- site_weekly_table("MSW")
-mssl_weekly_stats_table <- site_weekly_table("MSSL")
+msh_weekly_stats_table <- site_weekly_stats_tracker("MSH")
+msq_weekly_stats_table <- site_weekly_stats_tracker("MSQ")
+msbi_weekly_stats_table <- site_weekly_stats_tracker("MSBI")
+msb_weekly_stats_table <- site_weekly_stats_tracker("MSB")
+msw_weekly_stats_table <- site_weekly_stats_tracker("MSW")
+mssl_weekly_stats_table <- site_weekly_stats_tracker("MSSL")
 
 # Create list of tables to export to Excel
 export_list <- list("WeekendSummary" = wkend_total_rpi_tracker, 
@@ -512,7 +478,7 @@ export_list <- list("WeekendSummary" = wkend_total_rpi_tracker,
                     "MSW Weekly Stat" = msw_weekly_stats_table,
                     "MSSL Weekly Stat" = mssl_weekly_stats_table)
 
-write_xlsx(export_table_list, path = paste0(output_location, "\\Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
+write_xlsx(export_list, path = paste0(graphs_tables_output_location, "Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
 
 # Plot discharge trends by day of week for each site ---------------------------------------------------------
 sinai_colors <- c("#221f72", "#00AEEF", "#D80B8C", "#B2B3B2", "#C7C6EF", "#DDDEDD", "#FCC9E9")
@@ -539,6 +505,20 @@ stacked_bar("MSBI")
 stacked_bar("MSB")
 stacked_bar("MSW")
 stacked_bar("MSSL")
+
+msh_stacked_bar_dow <- stacked_bar("MSH")
+msq_stacked_bar_dow <- stacked_bar("MSQ")
+msbi_stacked_bar_dow <- stacked_bar("MSBI")
+msb_stacked_bar_dow <- stacked_bar("MSB")
+msw_stacked_bar_dow <- stacked_bar("MSW")
+mssl_stacked_bar_dow <- stacked_bar("MSSL")
+
+ggsave(path = graphs_tables_output_location, file = paste("MSH Stacked Bar DOW", Sys.Date(), ".png"), plot = msh_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSQ Stacked Bar DOW", Sys.Date(), ".png"), plot = msq_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSBI Stacked Bar DOW", Sys.Date(), ".png"), plot = msbi_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSB Stacked Bar DOW", Sys.Date(), ".png"), plot = msb_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSW Stacked Bar DOW", Sys.Date(), ".png"), plot = msw_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSSL Stacked Bar DOW", Sys.Date(), ".png"), plot = mssl_stacked_bar_dow, device = "png", width = 4.8, height = 4.8, units = "in")
 
 weekend_trend <- function(site) {
   trends_lookback <- 12
@@ -578,20 +558,22 @@ weekend_trend(site = "MSB")
 weekend_trend(site = "MSW")
 weekend_trend(site = "MSSL")
 
-formattable(mssl_weekly_stats_table)
+msh_graph_wkendtrend <- weekend_trend("MSH")
+msq_graph_wkendtrend <- weekend_trend("MSQ")
+msbi_graph_wkendtrend <- weekend_trend("MSBI")
+msb_graph_wkendtrend <- weekend_trend("MSB")
+msw_graph_wkendtrend <- weekend_trend("MSW")
+mssl_graph_wkendtrend <- weekend_trend("MSSL")
 
-mssl_weekly_stats_table_out <- mssl_weekly_stats_table[2:nrow(mssl_weekly_stats_table), ]
-rownames(mssl_weekly_stats_table_out) <- 1:nrow(mssl_weekly_stats_table_out)
+ggsave(path = graphs_tables_output_location, file = paste("MSH Weekend Discharge Trends", Sys.Date(), ".png"), plot = msh_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSQ Weekend Discharge Trends", Sys.Date(), ".png"), plot = msq_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSBI Weekend Discharge Trends", Sys.Date(), ".png"), plot = msbi_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSB Weekend Discharge Trends", Sys.Date(), ".png"), plot = msb_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSW Weekend Discharge Trends", Sys.Date(), ".png"), plot = msw_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSSL Weekend Discharge Trends", Sys.Date(), ".png"), plot = mssl_graph_wkendtrend, device = "png", width = 4.8, height = 4.8, units = "in")
 
-mssl_weekly_stats_table_out$`MSSL Metric` <- c("Weekend Disch as % Total Disch", "Avg. Daily Disch: Weekday", "Avg. Daily Disch: Weekend")
-mssl_weekly_stats_table_out$Site <- NULL
-mssl_weekly_stats_table_out[1, 1] <- percent(mssl_weekly_stats_table_out[1, 1], digits = 0)
 
-mssl_weekly_totals <- weekly_totals_format[weekly_totals_format$Site == "MSSL", ]
-mssl_table1 <- melt(mssl_weekly_totals, id.vars = c("Site", "WeekOf"), measure.vars = "WklyTotal")
-mssl_table1 <- dcast(mssl_table1, Site +variable ~ WeekOf, value.var = "value")
 
-mssl_table2 <- melt(mssl_weekly_totals, id.vars = c("Site", "WeekOf"), measure.vars = "WkendPercent")
-mssl_table2 <- dcast(mssl_table2[1:(nrow(mssl_table2)-1), ], variable ~ WeekOf, value.var = "value")
+# formattable(msh_weekly_stats_table[ , c(2, (ncol(msh_weekly_stats_table)-11):ncol(msh_weekly_stats_table))])
 
-formattable(mssl_table2)
+                                    

@@ -26,14 +26,33 @@ library(formattable)
 getwd()
 setwd("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data")
 
+# User inputs to determine scenario
+initial_run <- dlgInput(message = "Is this the initial run of the script (Yes/No)? (During the initial run, baseline data is preprocessed and exported and the Epic historical repository is initiated.)")$res
+if (initial_run == "Yes") {
+  initial_run <- TRUE
+} else if (initial_run == "No") {
+  initial_run <- FALSE
+} else {
+  initial_run <- NULL
+}
+
+new_epic_data <- dlgInput(message = "Is there new Epic data to be added to the analysis and repository (Yes/No)? (This typically happens on Tuesdays.)")$res
+if (new_epic_data == "Yes") {
+  new_epic_data <- TRUE
+} else if (new_epic_data == "No") {
+  new_epic_data <- FALSE
+} else {
+  new_epic_data <- NULL
+}
+
 # Set two parameters at beginning of script to specify data update scenario
 # initial_run: Select TRUE if this is the initial run. 
 # During the initial run, the baseline data will be preprocessed and exported for future use and the initial repository of Epic data will be created. The Epic repo will be updated in subsequent runs.
-initial_run <- FALSE 
+# initial_run <- FALSE 
 
 # new_epic_data: Select TRUE if new week's worth of Epic data has been received and the Epic repository needs to be updated. This will typically happen on Tuesdays. 
 # If only TSI data has been updated, then this is set to FALSE
-new_epic_data <- TRUE
+# new_epic_data <- TRUE
 
 # Reference files and constants ----------------------------------------
 ref_file <- "Analysis Reference\\Epic and TSI Data Analysis Reference 2020-01-21.xlsx"

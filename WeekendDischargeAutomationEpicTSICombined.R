@@ -33,7 +33,7 @@ initial_run <- FALSE
 
 # new_epic_data: Select TRUE if new week's worth of Epic data has been received and the Epic repository needs to be updated. This will typically happen on Tuesdays. 
 # If only TSI data has been updated, then this is set to FALSE
-new_epic_data <- FALSE
+new_epic_data <- TRUE
 
 # Reference files and constants ----------------------------------------
 ref_file <- "Analysis Reference\\Epic and TSI Data Analysis Reference 2020-01-21.xlsx"
@@ -297,7 +297,7 @@ if (initial_run == TRUE) {
   
 } else {
   # Import preprocessed baseline data ------------------------------------------
-  baseline_data_file <- choose.files(".\\Script Data Outputs", caption = "Select Excel file with preprocessed data for baseline period")
+  baseline_data_file <- choose.files(default = paste0(getwd(), "/Script Data Outputs/*.*"), caption = "Select Excel file with preprocessed data for baseline period")
   sheet_names <- excel_sheets(baseline_data_file)
   baseline_list <- lapply(sheet_names, function(x) read_excel(baseline_data_file, sheet = x))
   names(baseline_list) <- sheet_names
@@ -308,14 +308,14 @@ if (initial_run == TRUE) {
   
   # Import Epic historical repository ------------------------------------------
   getwd()
-  epic_hist_repo <- read_excel(choose.files(".\\Script Data Outputs\\Epic Repo", caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
+  epic_hist_repo <- read_excel(choose.files(default = paste0(getwd(), "/Script Data Outputs/Epic Repo/*.*"), caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
 
 }
 
 if (new_epic_data == TRUE) {
   # Preprocess weekly report and bind with historical data for future runs ------------------------------------
   # Import this week's Epic report
-  epic_raw_updates <- read_excel(choose.files(".\\Epic Daily Discharge Timing Reports\\Updated Reports", caption = "Select Epic report with discharges for past week"), col_names = TRUE, na = c("", "NA"))
+  epic_raw_updates <- read_excel(choose.files(default = paste0(getwd(), "/Epic Daily Discharge Timing Reports/Updated Reports/*.*"), caption = "Select Epic report with discharges for past week"), col_names = TRUE, na = c("", "NA"))
   
   # Preprocess this week's Epic report
   epic_updates_output <- preprocess_epic(epic_raw_updates)
@@ -526,10 +526,10 @@ weekend_trend <- function(site) {
   ggplot(data = wkend_comb_disch_vol[(wkend_comb_disch_vol$Site == site) & (wkend_comb_disch_vol$WeekNumber >= trends_first_week), ]) +
     
     geom_hline(aes(yintercept = Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
-    geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site]), vjust = -0.5, hjust = -0.25) +
+    geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site]), vjust = -0.5, hjust = -0.5) +
     
     geom_hline(aes(yintercept = Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site], color = "Target", linetype = "Target")) +
-    geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site]),  vjust = -0.5, hjust = -0.25) +
+    geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
     
     geom_line(mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
     geom_point(mapping = aes(x = SatDate, y = TotalDisch), color = "#00AEEF", size = 1.5) +
@@ -539,8 +539,11 @@ weekend_trend <- function(site) {
     theme_bw() +
     theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", axis.text.x = element_text(angle = 30, hjust = 1)) +
     
-    scale_x_discrete(expand = c(0, 0, 0.05, 0.5)) +
-    scale_y_continuous(expand = c(0, 5, 0.2, 0.5)) +
+    # scale_x_discrete(expand = c(0, 0, 0.05, 0.5)) +
+    # scale_y_continuous(expand = c(0, 5, 0.2, 0.5)) +
+    scale_x_discrete(expand = c(0, 0, 0, 1.2)) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    
     
     scale_linetype_manual(name = "", values = c("Baseline" = "dashed",
                                                 "Target" = "solid",
@@ -571,9 +574,3 @@ ggsave(path = graphs_tables_output_location, file = paste("MSBI Weekend Discharg
 ggsave(path = graphs_tables_output_location, file = paste("MSB Weekend Discharge Trends", Sys.Date(), ".png"), plot = msb_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSW Weekend Discharge Trends", Sys.Date(), ".png"), plot = msw_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSSL Weekend Discharge Trends", Sys.Date(), ".png"), plot = mssl_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
-
-
-
-# formattable(msh_weekly_stats_table[ , c(2, (ncol(msh_weekly_stats_table)-11):ncol(msh_weekly_stats_table))])
-
-                                    

@@ -532,7 +532,7 @@ msb_stacked_bar_dow <- stacked_bar("MSB")
 msw_stacked_bar_dow <- stacked_bar("MSW")
 mssl_stacked_bar_dow <- stacked_bar("MSSL")
 
-ggsave(path = graphs_tables_output_location, file = paste("MSH Stacked Bar DOW 3", Sys.Date(), ".png"), plot = msh_stacked_bar_dow, device = "png", width = 4.6, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSH Stacked Bar DOW 3", Sys.Date(), ".png"), plot = msh_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSQ Stacked Bar DOW", Sys.Date(), ".png"), plot = msq_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSBI Stacked Bar DOW", Sys.Date(), ".png"), plot = msbi_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSB Stacked Bar DOW", Sys.Date(), ".png"), plot = msb_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")

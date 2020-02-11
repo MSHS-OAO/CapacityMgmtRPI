@@ -469,7 +469,7 @@ site_weekly_stats_tracker <- function(site) {
   weekly_totals_format2 <- weekly_totals[weekly_totals$Site == site, ]
   weekly_totals_format2$WklyTotal <- as.integer(weekly_totals_format2$WklyTotal)
   weekly_totals_format2$WkendPercent <- percent(weekly_totals_format2$WkendPercent, digits = 0)
-  weekly_totals_format2[ , c("WkdayAvg", "WkendAvg")] <- round(weekly_totals_format2[ , c("WkdayAvg", "WkendAvg")], digits = 1)
+  weekly_totals_format2[ , c("WkdayAvg", "WkendAvg")] <- round(weekly_totals_format2[ , c("WkdayAvg", "WkendAvg")], digits = 0)
   weekly_totals_format2[ , c("WklyTotal", "WkendPercent", "WkdayAvg", "WkendAvg")] <- lapply(weekly_totals_format2[ , c("WklyTotal", "WkendPercent", "WkdayAvg", "WkendAvg")], 
                                                                                              function(x) ifelse(!is.na(x), as.character(x), x))
   weekly_stats_tracker <- melt(weekly_totals_format2, id.vars = c("Site", "WeekOf"), measure.vars = c("WklyTotal", "WkendPercent", "WkdayAvg", "WkendAvg"))

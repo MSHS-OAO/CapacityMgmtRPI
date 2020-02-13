@@ -290,148 +290,254 @@ weekly_totals$PrePost <- "Post"
 
 pre_post_all_sites <- rbind(baseline_weekly_totals, weekly_totals)
 
-# Check for normality of data
+pre_post_all_sites$WkendPercent <- round(pre_post_all_sites$WkendPercent*100, digits = 1)
+
+pre_post_all_sites$PrePost <- factor(pre_post_all_sites$PrePost, levels = c("Pre", "Post"))
+pre_post_all_sites <- pre_post_all_sites[order(pre_post_all_sites$PrePost), ]
+
+# Create a table with summary stats for each site pre- and post-implementation
+pre_post_compare <- as.data.frame(pre_post_all_sites %>%
+                                    group_by(Site, PrePost) %>%
+                                    summarize(WkendDischAvg = mean(WkendTotal, na.rm = TRUE), WkendDischMedian = median(WkendTotal, na.rm = TRUE),
+                                              WkendPercentAvg = mean(WkendPercent, na.rm = TRUE), WkendPercentMedian = median(WkendPercent, na.rm = TRUE)))
+
+pre_post_compare_2 <- melt(pre_post_compare, id = c("Site", "PrePost"))
+pre_post_compare_2 <- dcast(pre_post_compare_2, Site + variable ~ PrePost, value.var = "value")
+
+
+# Check for normality of data and equality of variance to determine if t-test can be used to compare pre- and post-implementation weekend discharge volumes
 pre_msh_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
 post_msh_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
+pre_post_msh_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
+                            pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
 print(paste0("MSH Pre-Implementation Distribution: ", pre_msh_norm))
 print(paste0("MSH Post-Implementation Distribution: ", post_msh_norm))
+print(paste0("MSH Pre- and Post-Implementation Variance: ", pre_post_msh_var))
+
 
 pre_msq_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
 post_msq_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
+pre_post_msq_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
+                                    pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
 print(paste0("MSQ Pre-Implementation Distribution: ", pre_msq_norm))
 print(paste0("MSQ Post-Implementation Distribution: ", post_msq_norm))
+print(paste0("MSQ Pre- and Post-Implementation Variance: ", pre_post_msq_var))
 
 pre_msbi_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
 post_msbi_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
+pre_post_msbi_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
+                                    pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
 print(paste0("MSBI Pre-Implementation Distribution: ", pre_msbi_norm))
 print(paste0("MSBI Post-Implementation Distribution: ", post_msbi_norm))
+print(paste0("MSBI Pre- and Post-Implementation Variance: ", pre_post_msbi_var))
 
 pre_msb_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
 post_msb_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
+pre_post_msb_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
+                                    pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
 print(paste0("MSB Pre-Implementation Distribution: ", pre_msb_norm))
 print(paste0("MSB Post-Implementation Distribution: ", post_msb_norm))
+print(paste0("MSB Pre- and Post-Implementation Variance: ", pre_post_msb_var))
 
 pre_msw_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
 post_msw_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
+pre_post_msw_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
+                                    pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
 print(paste0("MSW Pre-Implementation Distribution: ", pre_msw_norm))
 print(paste0("MSW Post-Implementation Distribution: ", post_msw_norm))
+print(paste0("MSW Pre- and Post-Implementation Variance: ", pre_post_msw_var))
 
 pre_mssl_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
 post_mssl_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
+pre_post_mssl_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
+                                    pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
 print(paste0("MSSL Pre-Implementation Distribution: ", pre_mssl_norm))
 print(paste0("MSSL Post-Implementation Distribution: ", post_mssl_norm))
+print(paste0("MSSL Pre- and Post-Implementation Variance: ", pre_post_mssl_var))
 
-# Create histograms of weekend discharge volume -----------------------------------------
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], aes(x = WkendTotal, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 4) +
-  labs(title = "MSH: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+
+# Create boxplots comparing weekend discharges pre- and post-implementation for each site ------------------------------------
+ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
+  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
+  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSH", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
+           vjust = -0.5, show.legend = FALSE) +
+  labs(title = "MSH: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
+  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
+  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], aes(x = WkendTotal, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-  labs(title = "MSQ: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
+  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
+  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSQ", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
+            vjust = -0.5, show.legend = FALSE) +
+  labs(title = "MSQ: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
+  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
+  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], aes(x = WkendTotal, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-  labs(title = "MSBI: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+
+ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
+  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
+  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSBI", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
+            vjust = -0.5, show.legend = FALSE) +
+  labs(title = "MSBI: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
+  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
+  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], aes(x = WkendTotal, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-  labs(title = "MSB: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+
+ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
+  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
+  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSB", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
+            vjust = -0.5, show.legend = FALSE) +
+  labs(title = "MSB: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
+  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
+  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], aes(x = WkendTotal, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-  labs(title = "MSW: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+
+ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
+  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
+  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSW", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
+            vjust = -0.5, show.legend = FALSE) +
+  labs(title = "MSW: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
+  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
+  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], aes(x = WkendTotal, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-  labs(title = "MSSL: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+
+ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
+  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
+  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSSL", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
+            vjust = -0.5, show.legend = FALSE) +
+  labs(title = "MSSL: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
   theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
-  
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
+  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
+  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
 
 
-# Create histograms of % weekend discharges -------------------------------
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], aes(x = WkendPercent*100, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-  labs(title = "MSH: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], aes(x = WkendPercent*100, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-  labs(title = "MSQ: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
-
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], aes(x = WkendPercent*100, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-  labs(title = "MSBI: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
-
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], aes(x = WkendPercent*100, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-  labs(title = "MSB: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
-
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], aes(x = WkendPercent*100, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-  labs(title = "MSW: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
-
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], aes(x = WkendPercent*100, color = PrePost)) +
-  geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-  labs(title = "MSSL: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-  scale_y_continuous(expand = c(0, 0))
+# # Create histograms of weekend discharge volume -----------------------------------------
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], aes(x = WkendTotal, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 4) +
+#   labs(title = "MSH: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], aes(x = WkendTotal, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
+#   labs(title = "MSQ: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], aes(x = WkendTotal, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
+#   labs(title = "MSBI: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], aes(x = WkendTotal, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
+#   labs(title = "MSB: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], aes(x = WkendTotal, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
+#   labs(title = "MSW: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], aes(x = WkendTotal, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
+#   labs(title = "MSSL: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# # Create histograms of % weekend discharges -------------------------------
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], aes(x = WkendPercent*100, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
+#   labs(title = "MSH: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], aes(x = WkendPercent*100, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
+#   labs(title = "MSQ: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], aes(x = WkendPercent*100, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
+#   labs(title = "MSBI: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], aes(x = WkendPercent*100, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
+#   labs(title = "MSB: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], aes(x = WkendPercent*100, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
+#   labs(title = "MSW: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
+# 
+# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], aes(x = WkendPercent*100, color = PrePost)) +
+#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
+#   labs(title = "MSSL: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
+#   theme_bw() + 
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
+#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
+#   scale_y_continuous(expand = c(0, 0))
 
 # Test for statistical significance in total weekend discharge changes ------------------------
 msh_wkend_total_pvalue <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], alternative = c("two.sided"))$p.value
@@ -451,6 +557,17 @@ print(paste0("MSW Total Weekend Discharge p-value: ", round(msw_wkend_total_pval
 
 mssl_wkend_total_pvalue <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], alternative = c("two.sided"))$p.value
 print(paste0("MSSL Total Weekend Discharge p-value: ", round(mssl_wkend_total_pvalue, digits = 2), "; ", ifelse(mssl_wkend_total_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+
+
+msq_wkend_total_pvalue_1 <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], alternative = "two.sided")
+
+msq_wkend_total_pvalue_2 <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], alternative = "less")
+
+msq_wkend_total_pvalue_3 <- t.test(x = pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Post", "WkendTotal"], 
+                                   y = pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"],
+                                   alternative = "greater")
+
+
 
 
 # Test for statistical significance in weekend discharges as % total discharge changes ------------------------

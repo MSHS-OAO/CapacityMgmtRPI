@@ -10,6 +10,7 @@ rm(list = ls())
 #install.packages("svDialogs")
 #install.packages("stringr")
 #install.packages("formattable")
+# install.packages("scales")
 
 #Analysis for weekend discharge tracking
 library(readxl)
@@ -21,6 +22,7 @@ library(reshape2)
 library(svDialogs)
 library(stringr)
 library(formattable)
+library(scales)
 
 # Set working directory and select raw data ----------------------------
 getwd()
@@ -305,286 +307,180 @@ pre_post_compare_2 <- melt(pre_post_compare, id = c("Site", "PrePost"))
 pre_post_compare_2 <- dcast(pre_post_compare_2, Site + variable ~ PrePost, value.var = "value")
 
 
-# Check for normality of data and equality of variance to determine if t-test can be used to compare pre- and post-implementation weekend discharge volumes
-pre_msh_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-post_msh_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-pre_post_msh_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
-                            pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
-print(paste0("MSH Pre-Implementation Distribution: ", pre_msh_norm))
-print(paste0("MSH Post-Implementation Distribution: ", post_msh_norm))
-print(paste0("MSH Pre- and Post-Implementation Variance: ", pre_post_msh_var))
-
-
-pre_msq_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-post_msq_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-pre_post_msq_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
-                                    pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
-print(paste0("MSQ Pre-Implementation Distribution: ", pre_msq_norm))
-print(paste0("MSQ Post-Implementation Distribution: ", post_msq_norm))
-print(paste0("MSQ Pre- and Post-Implementation Variance: ", pre_post_msq_var))
-
-pre_msbi_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-post_msbi_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-pre_post_msbi_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
-                                    pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
-print(paste0("MSBI Pre-Implementation Distribution: ", pre_msbi_norm))
-print(paste0("MSBI Post-Implementation Distribution: ", post_msbi_norm))
-print(paste0("MSBI Pre- and Post-Implementation Variance: ", pre_post_msbi_var))
-
-pre_msb_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-post_msb_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-pre_post_msb_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
-                                    pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
-print(paste0("MSB Pre-Implementation Distribution: ", pre_msb_norm))
-print(paste0("MSB Post-Implementation Distribution: ", post_msb_norm))
-print(paste0("MSB Pre- and Post-Implementation Variance: ", pre_post_msb_var))
-
-pre_msw_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-post_msw_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-pre_post_msw_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
-                                    pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
-print(paste0("MSW Pre-Implementation Distribution: ", pre_msw_norm))
-print(paste0("MSW Post-Implementation Distribution: ", post_msw_norm))
-print(paste0("MSW Pre- and Post-Implementation Variance: ", pre_post_msw_var))
-
-pre_mssl_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-post_mssl_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Normal", "Not Normal")
-pre_post_mssl_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"], 
-                                    pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Post", "WkendTotal"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
-print(paste0("MSSL Pre-Implementation Distribution: ", pre_mssl_norm))
-print(paste0("MSSL Post-Implementation Distribution: ", post_mssl_norm))
-print(paste0("MSSL Pre- and Post-Implementation Variance: ", pre_post_mssl_var))
-
-
 # Create boxplots comparing weekend discharges pre- and post-implementation for each site ------------------------------------
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
-  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
-  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSH", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
-           vjust = -0.5, show.legend = FALSE) +
-  labs(title = "MSH: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
-  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
+wkend_disch_boxplot <- function(weekly_distr_df, pre_post_summary_df, site) {
+  wkend_disch_end_date <- weekly_distr_df[weekly_distr_df$Site == site & weekly_distr_df$PrePost == "Post" & !is.na(weekly_distr_df$WkendTotal), ]
+  wkend_disch_end_date <- wkend_disch_end_date[wkend_disch_end_date$WeekNumber == max(wkend_disch_end_date$WeekNumber), "SatDate"]
+  wkend_disch_end_date <- format(as.Date(wkend_disch_end_date, format = "%m/%d/%y") + 2, "%m/%d/%y")
+  
+  ggplot(data = weekly_distr_df[weekly_distr_df$Site == site, ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
+    geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
+    geom_text(data = pre_post_summary_df[pre_post_summary_df$Site == site, ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
+              vjust = -0.5, show.legend = FALSE) +
+    labs(title = paste0(site, ": Boxplot of \n Weekend Discharges (Sat-Mon)"), x = "Measurement Period", y = "Discharge Volume") +
+    theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+    scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", paste0("Post-Impl (10/26/19-", wkend_disch_end_date, ")"))) +
+    scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", paste0("Post-Impl (10/26/19-", wkend_disch_end_date, ")"))) + 
+    scale_y_continuous(expand = c(0.1, 0, 0.1, 0)) +
+    scale_x_discrete(labels = c("Pre-Implementation", "Post-Implementation"))
+  
+}
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
-  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
-  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSQ", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
-            vjust = -0.5, show.legend = FALSE) +
-  labs(title = "MSQ: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
-  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
-
-
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
-  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
-  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSBI", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
-            vjust = -0.5, show.legend = FALSE) +
-  labs(title = "MSBI: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
-  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSH")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSQ")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSBI")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSB")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSW")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSSL")
 
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
-  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
-  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSB", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
-            vjust = -0.5, show.legend = FALSE) +
-  labs(title = "MSB: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
-  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
+# Create boxplots comparing weekend discharges as percent of total weekly discharge pre- and post-implementation for each site ----------------------
+wkend_percent_boxplot <- function(weekly_distr_df, pre_post_summary_df, site) {
+  wkend_percent_end_date <- weekly_distr_df[weekly_distr_df$Site == site & weekly_distr_df$PrePost == "Post" & !is.na(weekly_distr_df$WkendPercent), ]
+  wkend_percent_end_date <- wkend_percent_end_date[wkend_percent_end_date$WeekNumber == max(wkend_percent_end_date$WeekNumber), "SatDate"]
+  wkend_percent_end_date <- format(as.Date(wkend_percent_end_date, format = "%m/%d/%y") + 6, "%m/%d/%y")
+  
+  ggplot(data = weekly_distr_df[weekly_distr_df$Site == site, ], aes(x = PrePost, y = WkendPercent, color = PrePost, fill = PrePost)) +
+    geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4, na.rm = TRUE) +
+    geom_text(data = pre_post_summary_df[pre_post_summary_df$Site == site, ], aes(x = PrePost, y = WkendPercentMedian, label = paste0(round(WkendPercentMedian, 1), "%")), 
+                                                                                  vjust = -0.5, show.legend = FALSE) +
+    labs(title = paste0(site, ": Boxplot of Weekend Discharges \nas % of Total Weekly Discharges"), x = "Measurement Period", y = "% of Weekly Discharges") +
+    theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+    scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", paste0("Post-Impl (10/26/19-", wkend_percent_end_date, ")"))) +
+    scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", paste0("Post-Impl (10/26/19-", wkend_percent_end_date, ")"))) + 
+    scale_y_continuous(expand = c(0.1, 0, 0.1, 0), labels = function(x) paste0(x, "%")) +
+    scale_x_discrete(labels = c("Pre-Implementation", "Post-Implementation"))
+}
 
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
-  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
-  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSW", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
-            vjust = -0.5, show.legend = FALSE) +
-  labs(title = "MSW: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
-  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSH")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSQ")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSBI")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSB")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSW")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSSL")
 
 
-ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
-  geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
-  geom_text(data = pre_post_compare[pre_post_compare$Site == "MSSL", ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
-            vjust = -0.5, show.legend = FALSE) +
-  labs(title = "MSSL: Boxplot of Weekend Discharges", x = "Time Period", y = "Discharge Volume") +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
-  scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) +
-  scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", "Post-Implt (10/26/19-Present)")) + 
-  scale_y_continuous(expand = c(0.1, 0, 0.1, 0))
+# Check for normality of data and equality of variance to determine if t-test can be used to compare pre- and post-implementation weekend discharge volumes ---------------------------------------
+wkend_disch_distr_norm_var_check <- function(df, site) {
+  pre_pvalue <- shapiro.test(df[df$Site == site & df$PrePost == "Pre", "WkendTotal"])$p.value
+  post_pvalue <- shapiro.test(df[df$Site == site & df$PrePost == "Post", "WkendTotal"])$p.value
+  pre_post_var_pvalue <- var.test(df[df$Site == site & df$PrePost == "Pre", "WkendTotal"], 
+                                      df[df$Site == site & df$PrePost == "Post", "WkendTotal"])$p.value
+  pre_norm_distr <- ifelse(pre_pvalue > 0.05, "Normal Distribution", "Not Normal distribution")
+  post_norm_distr <- ifelse(post_pvalue > 0.05, "Normal Distribution", "Not Normal distribution")
+  pre_post_var_eq <- ifelse(pre_post_var_pvalue > 0.05, "Equal variance", "Not equal variance")
+  
+  print(paste0(site, ": Pre-implementation weekend discharges ", ifelse(pre_norm_distr == "Normal Distribution", "follow a normal distribution", "do not follow a normal distribution")))
+  print(paste0(site, ": Post-implementation weekend discharges ", ifelse(post_norm_distr == "Normal Distribution", "follow a normal distribution", "do not follow a normal distribution")))
+  print(paste0(site, ": Pre- & Post-implementation weekend discharges ", ifelse(pre_post_var_eq == "Equal variance", "have equal variance", "do not have equal variance")))
+  
+  
+  site_stats_list <- list("PreImpl p-value" = pre_pvalue, 
+                          "PreImpl distribution" = pre_norm_distr, 
+                          "PostImpl p-value" = post_pvalue, 
+                          "PostImpl distribution" = post_norm_distr, 
+                          "Pre & Post variance p-value" = pre_post_var_pvalue, 
+                          "Pre & Post variance equality" = pre_post_var_eq)
+  return(site_stats_list)
+}
 
+msh_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSH")
+msq_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSQ")
+msbi_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSBI")
+msb_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSB")
+msw_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSW")
+mssl_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSSL")
 
+# Since weekend discharges for all sites pre- and post-implementation follow normal distributions and have equal variances, t-tests can be used to determine significance of differences
 
-# # Create histograms of weekend discharge volume -----------------------------------------
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], aes(x = WkendTotal, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 4) +
-#   labs(title = "MSH: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], aes(x = WkendTotal, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-#   labs(title = "MSQ: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], aes(x = WkendTotal, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-#   labs(title = "MSBI: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], aes(x = WkendTotal, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-#   labs(title = "MSB: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], aes(x = WkendTotal, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-#   labs(title = "MSW: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], aes(x = WkendTotal, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", binwidth = 2) +
-#   labs(title = "MSSL: Histogram of Weekend Discharges", x = "Discharge Volume", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# # Create histograms of % weekend discharges -------------------------------
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], aes(x = WkendPercent*100, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-#   labs(title = "MSH: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], aes(x = WkendPercent*100, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-#   labs(title = "MSQ: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], aes(x = WkendPercent*100, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-#   labs(title = "MSBI: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], aes(x = WkendPercent*100, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-#   labs(title = "MSB: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], aes(x = WkendPercent*100, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-#   labs(title = "MSW: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-# 
-# ggplot(data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], aes(x = WkendPercent*100, color = PrePost)) +
-#   geom_histogram(aes(y = ..count.., color = PrePost, fill = PrePost), alpha = 0.2, position = "identity", na.rm = TRUE) +
-#   labs(title = "MSSL: Histogram of Weekend Discharges as % Total Discharges", x = "% of Total Weekly Discharges", y = "Frequency") +
-#   theme_bw() + 
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) +
-#   scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C")) + 
-#   scale_y_continuous(expand = c(0, 0))
-
-# Test for statistical significance in total weekend discharge changes ------------------------
-msh_wkend_total_pvalue <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], alternative = c("two.sided"))$p.value
-print(paste0("MSH Total Weekend Discharge p-value: ", round(msh_wkend_total_pvalue, digits = 2), "; ", ifelse(msh_wkend_total_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-msq_wkend_total_pvalue <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], alternative = c("two.sided"))$p.value
-print(paste0("MSQ Total Weekend Discharge p-value: ", round(msq_wkend_total_pvalue, digits = 2), "; ", ifelse(msq_wkend_total_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-msbi_wkend_total_pvalue <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], alternative = c("two.sided"))$p.value
-print(paste0("MSBI Total Weekend Discharge p-value: ", round(msbi_wkend_total_pvalue, digits = 2), "; ", ifelse(msbi_wkend_total_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-msb_wkend_total_pvalue <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], alternative = c("two.sided"))$p.value
-print(paste0("MSB Total Weekend Discharge p-value: ", round(msb_wkend_total_pvalue, digits = 2), "; ", ifelse(msb_wkend_total_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-msw_wkend_total_pvalue <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], alternative = c("two.sided"))$p.value
-print(paste0("MSW Total Weekend Discharge p-value: ", round(msw_wkend_total_pvalue, digits = 2), "; ", ifelse(msw_wkend_total_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-mssl_wkend_total_pvalue <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], alternative = c("two.sided"))$p.value
-print(paste0("MSSL Total Weekend Discharge p-value: ", round(mssl_wkend_total_pvalue, digits = 2), "; ", ifelse(mssl_wkend_total_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-
-msq_wkend_total_pvalue_1 <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], alternative = "two.sided")
-
-msq_wkend_total_pvalue_2 <- t.test(WkendTotal  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], alternative = "less")
-
-msq_wkend_total_pvalue_3 <- t.test(x = pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Post", "WkendTotal"], 
-                                   y = pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Pre", "WkendTotal"],
+# Conduct statistical analysis ------------------------------------
+site_wkend_disch_ttest <- function(df, site) {
+  site_wkend_disch_ttest <- t.test(x = df[df$Site == site & df$PrePost == "Post", "WkendTotal"],
+                                   y = df[df$Site == site & df$PrePost == "Pre", "WkendTotal"],
                                    alternative = "greater")
+  print(paste0(site, ": Post-implementation weekend discharges are ", ifelse(site_wkend_disch_ttest$p.value < 0.05, "significantly greater than ", "not significantly greater than "), "pre-implementation weekend discharges"))
+  return(site_wkend_disch_ttest)
+  
+}
+
+msh_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSH")
+msq_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSQ")
+msbi_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSBI")
+msb_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSB")
+msw_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSW")
+mssl_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSSL")
 
 
 
-
-# Test for statistical significance in weekend discharges as % total discharge changes ------------------------
-msh_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], alternative = c("two.sided"))$p.value
-print(paste0("MSH Weekend Discharge as % Total Discharge p-value: ", round(msh_wkend_percent_pvalue, digits = 2), "; ", ifelse(msh_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-msq_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], alternative = c("two.sided"))$p.value
-print(paste0("MSQ Weekend Discharge as % Total Discharge p-value: ", round(msq_wkend_percent_pvalue, digits = 2), "; ", ifelse(msq_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-msbi_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], alternative = c("two.sided"))$p.value
-print(paste0("MSBI Weekend Discharge as % Total Discharge p-value: ", round(msbi_wkend_percent_pvalue, digits = 2), "; ", ifelse(msbi_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-msb_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], alternative = c("two.sided"))$p.value
-print(paste0("MSB Weekend Discharge as % Total Discharge p-value: ", round(msb_wkend_percent_pvalue, digits = 2), "; ", ifelse(msb_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-msw_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], alternative = c("two.sided"))$p.value
-print(paste0("MSW Weekend Discharge as % Total Discharge p-value: ", round(msw_wkend_percent_pvalue, digits = 2), "; ", ifelse(msw_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
-
-mssl_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], alternative = c("two.sided"))$p.value
-print(paste0("MSSL Weekend Discharge as % Total Discharge p-value: ", round(mssl_wkend_percent_pvalue, digits = 2), "; ", ifelse(mssl_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+# # Check for normality of data and equality of variance to determine if t-test can be used to compare pre- and post-implementation weekend discharge as percent of total weekly discharges
+# pre_msh_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# post_msh_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# pre_post_msh_percent_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"], 
+#                                     pre_post_all_sites[pre_post_all_sites$Site == "MSH" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
+# print(paste0("MSH Pre-Implementation Distribution: ", pre_msh_percent_norm))
+# print(paste0("MSH Post-Implementation Distribution: ", post_msh_percent_norm))
+# print(paste0("MSH Pre- and Post-Implementation Variance: ", pre_post_msh_percent_var))
+# 
+# 
+# pre_msq_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# post_msq_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# pre_post_msq_percent_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"], 
+#                                     pre_post_all_sites[pre_post_all_sites$Site == "MSQ" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
+# print(paste0("MSQ Pre-Implementation Distribution: ", pre_msq_percent_norm))
+# print(paste0("MSQ Post-Implementation Distribution: ", post_msq_percent_norm))
+# print(paste0("MSQ Pre- and Post-Implementation Variance: ", pre_post_msq_percent_var))
+# 
+# pre_msbi_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# post_msbi_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# pre_post_msbi_percent_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"], 
+#                                      pre_post_all_sites[pre_post_all_sites$Site == "MSBI" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
+# print(paste0("MSBI Pre-Implementation Distribution: ", pre_msbi_percent_norm))
+# print(paste0("MSBI Post-Implementation Distribution: ", post_msbi_percent_norm))
+# print(paste0("MSBI Pre- and Post-Implementation Variance: ", pre_post_msbi_percent_var))
+# 
+# pre_msb_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# post_msb_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# pre_post_msb_percent_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"], 
+#                                     pre_post_all_sites[pre_post_all_sites$Site == "MSB" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
+# print(paste0("MSB Pre-Implementation Distribution: ", pre_msb_percent_norm))
+# print(paste0("MSB Post-Implementation Distribution: ", post_msb_percent_norm))
+# print(paste0("MSB Pre- and Post-Implementation Variance: ", pre_post_msb_percent_var))
+# 
+# pre_msw_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# post_msw_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# pre_post_msw_percent_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"], 
+#                                     pre_post_all_sites[pre_post_all_sites$Site == "MSW" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
+# print(paste0("MSW Pre-Implementation Distribution: ", pre_msw_percent_norm))
+# print(paste0("MSW Post-Implementation Distribution: ", post_msw_percent_norm))
+# print(paste0("MSW Pre- and Post-Implementation Variance: ", pre_post_msw_percent_var))
+# 
+# pre_mssl_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# post_mssl_percent_norm <- ifelse(shapiro.test(pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Normal", "Not Normal")
+# pre_post_mssl_percent_var <- ifelse(var.test(pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Pre", "WkendPercent"], 
+#                                      pre_post_all_sites[pre_post_all_sites$Site == "MSSL" & pre_post_all_sites$PrePost == "Post", "WkendPercent"])$p.value > 0.05, "Equality of Variance", "No Equality of Variance")
+# print(paste0("MSSL Pre-Implementation Distribution: ", pre_mssl_percent_norm))
+# print(paste0("MSSL Post-Implementation Distribution: ", post_mssl_percent_norm))
+# print(paste0("MSSL Pre- and Post-Implementation Variance: ", pre_post_mssl_percent_var))
+# 
+# 
+# # Test for statistical significance in weekend discharges as % total discharge changes ------------------------
+# msh_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSH", ], alternative = c("two.sided"))$p.value
+# print(paste0("MSH Weekend Discharge as % Total Discharge p-value: ", round(msh_wkend_percent_pvalue, digits = 2), "; ", ifelse(msh_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+# 
+# msq_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], alternative = c("two.sided"))$p.value
+# print(paste0("MSQ Weekend Discharge as % Total Discharge p-value: ", round(msq_wkend_percent_pvalue, digits = 2), "; ", ifelse(msq_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+# 
+# msbi_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], alternative = c("two.sided"))$p.value
+# print(paste0("MSBI Weekend Discharge as % Total Discharge p-value: ", round(msbi_wkend_percent_pvalue, digits = 2), "; ", ifelse(msbi_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+# 
+# msb_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], alternative = c("two.sided"))$p.value
+# print(paste0("MSB Weekend Discharge as % Total Discharge p-value: ", round(msb_wkend_percent_pvalue, digits = 2), "; ", ifelse(msb_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+# 
+# msw_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], alternative = c("two.sided"))$p.value
+# print(paste0("MSW Weekend Discharge as % Total Discharge p-value: ", round(msw_wkend_percent_pvalue, digits = 2), "; ", ifelse(msw_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+# 
+# mssl_wkend_percent_pvalue <- wilcox.test(WkendPercent*100  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], alternative = c("two.sided"))$p.value
+# print(paste0("MSSL Weekend Discharge as % Total Discharge p-value: ", round(mssl_wkend_percent_pvalue, digits = 2), "; ", ifelse(mssl_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))

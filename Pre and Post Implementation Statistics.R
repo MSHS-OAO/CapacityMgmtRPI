@@ -222,7 +222,7 @@ wkend_total_rpi_tracker <- left_join(Site_Baseline_Targets[ , c("Site", "Weekend
 # Create a table to track weekly status including total discharges, % weekend discharges, avg weekday discharges, avg weekend discharges
 weekly_totals <- as.data.frame(site_summary_disch_vol %>%
                                  group_by(Site, WeekNumber, SatDate, WeekOf, WeekendOf) %>%
-                                 summarize(WkendTotal = sum(TotalDisch[Weekend == TRUE]), WklyTotal = sum(TotalDisch), WkendPercent = WkendTotal/WklyTotal, WkendAvg = TotalDisch[Weekend == TRUE]/3, WkdayAvg = mean(TotalDisch[Weekend != TRUE])))
+                                 summarize(WkendTotal = sum(TotalDisch[Weekend == TRUE]), WklyTotal = sum(TotalDisch), WkendPercent = WkendTotal/WklyTotal, WkendAvg = sum(TotalDisch[Weekend == TRUE])/3, WkdayAvg = sum(TotalDisch[Weekend == FALSE])/4))
 
 weekly_totals$WkendPercent[weekly_totals$WkendPercent == 1] <- NA
 weekly_totals$WkdayAvg[!is.finite(weekly_totals$WkdayAvg)] <- NA
@@ -279,7 +279,7 @@ rownames(baseline_summary_disch_vol) <- 1:nrow(baseline_summary_disch_vol)
 # Create a table to track weekly status including total discharges, % weekend discharges, avg weekday discharges, avg weekend discharges
 baseline_weekly_totals <- as.data.frame(baseline_summary_disch_vol[baseline_summary_disch_vol$WeekNumber > 1, ] %>%
                                  group_by(Site, WeekNumber, SatDate, WeekOf, WeekendOf) %>%
-                                 summarize(WkendTotal = sum(TotalDisch[Weekend == TRUE]), WklyTotal = sum(TotalDisch), WkendPercent = WkendTotal/WklyTotal, WkendAvg = TotalDisch[Weekend == TRUE]/3, WkdayAvg = mean(TotalDisch[Weekend != TRUE])))
+                                 summarize(WkendTotal = sum(TotalDisch[Weekend == TRUE]), WklyTotal = sum(TotalDisch), WkendPercent = WkendTotal/WklyTotal, WkendAvg = sum(TotalDisch[Weekend == TRUE])/3, WkdayAvg = sum(TotalDisch[Weekend != TRUE])/4))
 
 baseline_weekly_totals$WkendPercent[baseline_weekly_totals$WkendPercent == 1] <- NA
 baseline_weekly_totals$WkdayAvg[!is.finite(baseline_weekly_totals$WkdayAvg)] <- NA
@@ -473,3 +473,5 @@ print(paste0("MSW % Weekend Discharge p-value: ", round(msw_wkend_percent_pvalue
 mssl_wkend_percent_pvalue <- t.test(WkendPercent  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], alternative = c("greater"))$p.value
 print(paste0("MSSL % Weekend Discharge p-value: ", round(mssl_wkend_percent_pvalue, digits = 2), "; ", ifelse(mssl_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
 
+
+write_xlsx(pre_post_all_sites, path = paste0(graphs_tables_output_location, "\\PrePostDitributions.xlsx"))

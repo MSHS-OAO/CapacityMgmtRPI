@@ -457,6 +457,12 @@ wkend_total_table <- dcast(wkend_comb_disch_vol, Site ~ WeekendOf, value.var = "
 Site_Baseline_Targets$Site <- factor(Site_Baseline_Targets$Site, levels = site_order, ordered = TRUE)
 wkend_total_rpi_tracker <- left_join(Site_Baseline_Targets[ , c("Site", "Weekend Baseline", "Weekend Target")], wkend_total_table, by = c("Site" = "Site"))
 
+# Create 2 new tables with original and updated targets
+Site_Original_Updated_Targets$Site <- factor(Site_Original_Updated_Targets$Site, levels = site_order, ordered = TRUE)
+wkend_total_rpi_tracker_original_targets <- left_join(Site_Original_Updated_Targets[ , c("Site", "Weekend Baseline", "Original Change", "Original Target")], wkend_total_table, by = c("Site" = "Site"))
+wkend_total_rpi_tracker_updated_targets <- left_join(Site_Original_Updated_Targets[ , c("Site", "Weekend Baseline", "Updated Change", "Updated Target")], wkend_total_table, by = c("Site" = "Site"))
+
+
 # Create a table to track weekly status including total discharges, % weekend discharges, avg weekday discharges, avg weekend discharges
 weekly_totals <- as.data.frame(site_summary_daily_disch_vol %>%
                                  group_by(Site, WeekNumber, SatDate, WeekOf, WeekendOf) %>%
@@ -489,7 +495,9 @@ msw_weekly_stats_table <- site_weekly_stats_tracker("MSW")
 mssl_weekly_stats_table <- site_weekly_stats_tracker("MSSL")
 
 # Create list of tables to export to Excel
-export_list <- list("WeekendSummary" = wkend_total_rpi_tracker, 
+export_list <- list("Wkend Summary Orig Targets" = wkend_total_rpi_tracker_original_targets,
+                    "Wkend Summary New Targets" = wkend_total_rpi_tracker_updated_targets,
+                    # "WeekendSummary" = wkend_total_rpi_tracker, 
                     "MSH Weekly Stat" = msh_weekly_stats_table,
                     "MSQ Weekly Stat" = msq_weekly_stats_table,
                     "MSBI Weekly Stat" = msbi_weekly_stats_table,
@@ -580,12 +588,56 @@ weekend_trend(site = "MSB")
 weekend_trend(site = "MSW")
 weekend_trend(site = "MSSL")
 
-msh_graph_wkendtrend <- weekend_trend("MSH")
-msq_graph_wkendtrend <- weekend_trend("MSQ")
-msbi_graph_wkendtrend <- weekend_trend("MSBI")
-msb_graph_wkendtrend <- weekend_trend("MSB")
-msw_graph_wkendtrend <- weekend_trend("MSW")
-mssl_graph_wkendtrend <- weekend_trend("MSSL")
+weekend_trend_old_new_targets <- function(site) {
+  trends_lookback <- 12
+  trends_first_week <- max(wkend_comb_disch_vol$WeekNumber[wkend_comb_disch_vol$Site == site], na.rm = TRUE) - trends_lookback + 1
+  ggplot(data = wkend_comb_disch_vol[(wkend_comb_disch_vol$Site == site) & (wkend_comb_disch_vol$WeekNumber >= trends_first_week), ]) +
+    
+    geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
+    geom_text(aes(length(SatDate), Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site]), vjust = -0.5, hjust = -0.5) +
+    
+    geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site], color = "Original Target", linetype = "Original Target")) +
+    geom_text(aes(length(SatDate), Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
+    
+    geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], color = "Updated Target", linetype = "Updated Target")) +
+    geom_text(aes(length(SatDate), Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
+    
+    geom_line(mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
+    geom_point(mapping = aes(x = SatDate, y = TotalDisch), color = "#00AEEF", size = 1.5) +
+    geom_text(mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = -0.25) +
+    
+    labs(title = paste(site, "Weekend Discharges: 12 Week Lookback"), x = "Week Of", y = "Discharge Volume") +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", legend.justification = "left", legend.key.width = unit(.375,"inch"), axis.text.x = element_text(angle = 30, hjust = 1)) +
+    
+    # scale_x_discrete(expand = c(0, 0, 0.05, 0.5)) +
+    # scale_y_continuous(expand = c(0, 5, 0.2, 0.5)) +
+    scale_x_discrete(expand = c(0, 0, 0, 1.2)) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    
+    
+    scale_linetype_manual(name = "", values = c("Baseline" = "dashed",
+                                                "Original Target" = "dashed",
+                                                "Updated Target" = "solid", 
+                                                "Actual" = "solid"),
+                          labels = c("Actual", "Baseline", "Old Target", "New Target")) +
+    
+    scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c",
+                                             "Original Target" = "black",
+                                             "Updated Target" = "black",
+                                             "Actual" = "#00AEEF"),
+                       labels = c("Actual", "Baseline", "Old Target", "New Target"))
+    
+}
+
+weekend_trend_old_new_targets("MSH")
+
+msh_graph_wkendtrend <- weekend_trend_old_new_targets("MSH")
+msq_graph_wkendtrend <- weekend_trend_old_new_targets("MSQ")
+msbi_graph_wkendtrend <- weekend_trend_old_new_targets("MSBI")
+msb_graph_wkendtrend <- weekend_trend_old_new_targets("MSB")
+msw_graph_wkendtrend <- weekend_trend_old_new_targets("MSW")
+mssl_graph_wkendtrend <- weekend_trend_old_new_targets("MSSL")
 
 ggsave(path = graphs_tables_output_location, file = paste("MSH Weekend Discharge Trends", Sys.Date(), ".png"), plot = msh_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSQ Weekend Discharge Trends", Sys.Date(), ".png"), plot = msq_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")

@@ -21,6 +21,7 @@ library(reshape2)
 library(svDialogs)
 library(stringr)
 library(formattable)
+library(scales)
 
 # Set working directory and select raw data ----------------------------
 getwd()
@@ -494,6 +495,7 @@ msb_weekly_stats_table <- site_weekly_stats_tracker("MSB")
 msw_weekly_stats_table <- site_weekly_stats_tracker("MSW")
 mssl_weekly_stats_table <- site_weekly_stats_tracker("MSSL")
 
+
 # Create list of tables to export to Excel
 export_list <- list("Wkend Summary Orig Targets" = wkend_total_rpi_tracker_original_targets,
                     "Wkend Summary New Targets" = wkend_total_rpi_tracker_updated_targets,
@@ -547,6 +549,7 @@ ggsave(path = graphs_tables_output_location, file = paste("MSB Stacked Bar DOW",
 ggsave(path = graphs_tables_output_location, file = paste("MSW Stacked Bar DOW", Sys.Date(), ".png"), plot = msw_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSSL Stacked Bar DOW", Sys.Date(), ".png"), plot = mssl_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 
+# Plot weekend discharges over time for last 12 weeks ---------------------
 weekend_trend <- function(site) {
   trends_lookback <- 12
   trends_first_week <- max(wkend_comb_disch_vol$WeekNumber[wkend_comb_disch_vol$Site == site], na.rm = TRUE) - trends_lookback + 1
@@ -630,8 +633,6 @@ weekend_trend_old_new_targets <- function(site) {
     
 }
 
-weekend_trend_old_new_targets("MSH")
-
 msh_graph_wkendtrend <- weekend_trend_old_new_targets("MSH")
 msq_graph_wkendtrend <- weekend_trend_old_new_targets("MSQ")
 msbi_graph_wkendtrend <- weekend_trend_old_new_targets("MSBI")
@@ -645,3 +646,31 @@ ggsave(path = graphs_tables_output_location, file = paste("MSBI Weekend Discharg
 ggsave(path = graphs_tables_output_location, file = paste("MSB Weekend Discharge Trends", Sys.Date(), ".png"), plot = msb_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSW Weekend Discharge Trends", Sys.Date(), ".png"), plot = msw_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSSL Weekend Discharge Trends", Sys.Date(), ".png"), plot = mssl_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
+
+# Plot weekend discharges as percent of total weekly discharges over time -------------------------------
+
+weekend_percent_trends <- function(site) {
+  trends_lookback <- 12
+  trends_first_week <- max(weekly_totals$WeekNumber[weekly_totals$Site == site & !is.na(weekly_totals$WkendPercent)], na.rm = TRUE) - trends_lookback + 1
+  ggplot(data = weekly_totals[(weekly_totals$Site == site) & (weekly_totals$WeekNumber >= trends_first_week) & !is.na(weekly_totals$WkendPercent), ]) +
+  geom_line(mapping = aes(x = SatDate, y = WkendPercent, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
+  geom_point(mapping = aes(x = SatDate, y = WkendPercent, color = "Actual"), size = 2) +
+    
+  labs(title = paste(site, "Weekend Discharges as Percent of\n Total Weekly Dischargers: 12 Week Lookback"), x = "Week Of", y = "Percent of Discharges") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none", axis.text.x = element_text(angle = 30, hjust = 1)) +
+    
+  scale_x_discrete(expand = c(0, 0, 0, 1.2)) +
+  scale_y_continuous(expand = c(0.2, 0, 0.2, 0), labels = percent_format(accuracy = 1)) +
+  scale_linetype_manual(name = "", values = c("Actual" = "solid"), labels = c("Actual")) +
+  scale_color_manual(name = "", values = c("Actual" = "#00AEEF"), labels = c("Actual"))
+  
+}
+
+weekend_percent_trends("MSH")
+weekend_percent_trends("MSQ")
+weekend_percent_trends("MSBI")
+weekend_percent_trends("MSB")
+weekend_percent_trends("MSW")
+weekend_percent_trends("MSSL")
+

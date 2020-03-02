@@ -660,7 +660,7 @@ weekend_percent_trends <- function(site) {
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5), legend.position = "none", axis.text.x = element_text(angle = 30, hjust = 1)) +
     
-  scale_x_discrete(expand = c(0, 0, 0, 1.2)) +
+  scale_x_discrete(expand = c(0, 0.5, 0, .5)) +
   scale_y_continuous(expand = c(0.2, 0, 0.2, 0), labels = percent_format(accuracy = 1)) +
   scale_linetype_manual(name = "", values = c("Actual" = "solid"), labels = c("Actual")) +
   scale_color_manual(name = "", values = c("Actual" = "#00AEEF"), labels = c("Actual"))

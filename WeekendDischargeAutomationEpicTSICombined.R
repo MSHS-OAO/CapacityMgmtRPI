@@ -584,12 +584,12 @@ weekend_trend <- function(site) {
                                              "Actual" = "#00AEEF"))
 }
 
-weekend_trend(site = "MSH")
-weekend_trend(site = "MSQ")
-weekend_trend(site = "MSBI")
-weekend_trend(site = "MSB")
-weekend_trend(site = "MSW")
-weekend_trend(site = "MSSL")
+# weekend_trend(site = "MSH")
+# weekend_trend(site = "MSQ")
+# weekend_trend(site = "MSBI")
+# weekend_trend(site = "MSB")
+# weekend_trend(site = "MSW")
+# weekend_trend(site = "MSSL")
 
 weekend_trend_old_new_targets <- function(site) {
   trends_lookback <- 12
@@ -609,7 +609,7 @@ weekend_trend_old_new_targets <- function(site) {
     geom_point(mapping = aes(x = SatDate, y = TotalDisch), color = "#00AEEF", size = 1.5) +
     geom_text(mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = -0.25) +
     
-    labs(title = paste(site, "Weekend Discharges: 12 Week Lookback"), x = "Week Of", y = "Discharge Volume") +
+    labs(title = paste(site, "Weekend Discharges:", trends_lookback, "Week Lookback"), x = "Week Of", y = "Discharge Volume") +
     theme_bw() +
     theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", legend.justification = "left", legend.key.width = unit(.375,"inch"), axis.text.x = element_text(angle = 30, hjust = 1)) +
     
@@ -633,6 +633,13 @@ weekend_trend_old_new_targets <- function(site) {
     
 }
 
+weekend_trend_old_new_targets(site = "MSH")
+weekend_trend_old_new_targets(site = "MSQ")
+weekend_trend_old_new_targets(site = "MSBI")
+weekend_trend_old_new_targets(site = "MSB")
+weekend_trend_old_new_targets(site = "MSW")
+weekend_trend_old_new_targets(site = "MSSL")
+
 msh_graph_wkendtrend <- weekend_trend_old_new_targets("MSH")
 msq_graph_wkendtrend <- weekend_trend_old_new_targets("MSQ")
 msbi_graph_wkendtrend <- weekend_trend_old_new_targets("MSBI")
@@ -650,13 +657,13 @@ ggsave(path = graphs_tables_output_location, file = paste("MSSL Weekend Discharg
 # Plot weekend discharges as percent of total weekly discharges over time -------------------------------
 
 weekend_percent_trends <- function(site) {
-  trends_lookback <- 12
+  trends_lookback <- 16
   trends_first_week <- max(weekly_totals$WeekNumber[weekly_totals$Site == site & !is.na(weekly_totals$WkendPercent)], na.rm = TRUE) - trends_lookback + 1
   ggplot(data = weekly_totals[(weekly_totals$Site == site) & (weekly_totals$WeekNumber >= trends_first_week) & !is.na(weekly_totals$WkendPercent), ]) +
   geom_line(mapping = aes(x = SatDate, y = WkendPercent, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
   geom_point(mapping = aes(x = SatDate, y = WkendPercent, color = "Actual"), size = 2) +
     
-  labs(title = paste(site, "Weekend Discharges as Percent of\n Total Weekly Dischargers: 12 Week Lookback"), x = "Week Of", y = "Percent of Discharges") +
+  labs(title = paste(site, "Weekend Discharges as Percent of\n Total Weekly Discharges:", trends_lookback, "Week Lookback"), x = "Week Of", y = "Percent of Discharges") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5), legend.position = "none", axis.text.x = element_text(angle = 30, hjust = 1)) +
     
@@ -674,3 +681,36 @@ weekend_percent_trends("MSB")
 weekend_percent_trends("MSW")
 weekend_percent_trends("MSSL")
 
+msh_graph_wkend_percent_trend <- weekend_percent_trends("MSH")
+msq_graph_wkend_percent_trend <- weekend_percent_trends("MSQ")
+msbi_graph_wkend_percent_trend <- weekend_percent_trends("MSBI")
+msb_graph_wkend_percent_trend <- weekend_percent_trends("MSB")
+msw_graph_wkend_percent_trend <- weekend_percent_trends("MSW")
+mssl_graph_wkend_percent_trend <- weekend_percent_trends("MSSL")
+
+
+ggsave(path = graphs_tables_output_location, file = paste("MSH Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msh_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSQ Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msq_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSBI Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msbi_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSB Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msb_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSW Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msw_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSSL Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = mssl_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
+
+mshs_colors <- c("#221F72", "#00AEEF", "#D80B8C", "#B2B3B2", "#C7C6EF", "#FCC9E9")
+
+trends_lookback <- 16
+trends_first_week <- max(weekly_totals$WeekNumber[!is.na(weekly_totals$WkendPercent)], na.rm = TRUE) - trends_lookback + 1
+mshs_wkend_percent <- ggplot(data = weekly_totals[(weekly_totals$WeekNumber >= trends_first_week) & !is.na(weekly_totals$WkendPercent), ]) +
+  geom_line(mapping = aes(x = SatDate, y = WkendPercent, group = Site, color = Site, linetype = Site), size = 1) + 
+  geom_point(mapping = aes(x = SatDate, y = WkendPercent, color = Site), size = 2) +
+  
+  labs(title = paste("MSHS Weekend Discharges as Percent of\n Total Weekly Discharges:", trends_lookback, "Week Lookback"), x = "Week Of", y = "Percent of Discharges") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", axis.text.x = element_text(angle = 30, hjust = 1)) +
+  
+  scale_x_discrete(expand = c(0, 0.5, 0, .5)) +
+  scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0.15, 0.45), breaks = seq(0.15, 0.45, 0.1)) +
+  scale_color_manual(name = "Site", values = mshs_colors) +
+  guides(color = guide_legend(nrow = 1))
+
+ggsave(path = graphs_tables_output_location, file = paste("MSHS Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = mshs_wkend_percent, device = "png", width = 6, height = 5, units = "in")

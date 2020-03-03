@@ -56,7 +56,7 @@ if (new_epic_data == "Yes") {
 # new_epic_data <- TRUE
 
 # Reference files and constants ----------------------------------------
-ref_file <- "Analysis Reference\\Epic and TSI Data Analysis Reference 2020-01-21.xlsx"
+ref_file <- "Analysis Reference\\Epic and TSI Data Analysis Reference 2020-03-03.xlsx"
 epic_site_dict <- read_excel(ref_file, sheet = "EpicSites")
 epic_unit_excl <- read_excel(ref_file, sheet = "EpicUnitExclusions")
 tsi_site_dict <- read_excel(ref_file, sheet = "TSISites")
@@ -64,7 +64,7 @@ tsi_dispo_dict <- read_excel(ref_file, sheet = "TSIDispo")
 tsi_dispo_dict[is.na(tsi_dispo_dict$`Discharge Disposition Desc Msx`), 1] <- "Unknown"
 tsi_service_line_excl <- read_excel(ref_file, sheet = "TSIServiceLines")
 
-site_order <- c("MSH", "MSQ", "MSBI", "MSB", "MSW", "MSSL")
+site_order <- c("MSH", "MSQ", "MSBI", "MSB", "MSW", "MSM")
 DischDOW_Order <- c("Sat-Mon", "Tue", "Wed", "Thu", "Fri")
 
 rpi_start <- as.Date("10/26/2019", "%m/%d/%Y")
@@ -493,7 +493,7 @@ msq_weekly_stats_table <- site_weekly_stats_tracker("MSQ")
 msbi_weekly_stats_table <- site_weekly_stats_tracker("MSBI")
 msb_weekly_stats_table <- site_weekly_stats_tracker("MSB")
 msw_weekly_stats_table <- site_weekly_stats_tracker("MSW")
-mssl_weekly_stats_table <- site_weekly_stats_tracker("MSSL")
+msm_weekly_stats_table <- site_weekly_stats_tracker("MSM")
 
 
 # Create list of tables to export to Excel
@@ -505,7 +505,7 @@ export_list <- list("Wkend Summary Orig Targets" = wkend_total_rpi_tracker_origi
                     "MSBI Weekly Stat" = msbi_weekly_stats_table,
                     "MSB Weekly Stat" = msb_weekly_stats_table,
                     "MSW Weekly Stat" = msw_weekly_stats_table,
-                    "MSSL Weekly Stat" = mssl_weekly_stats_table)
+                    "MSM Weekly Stat" = msm_weekly_stats_table)
 
 write_xlsx(export_list, path = paste0(graphs_tables_output_location, "\\Weekly Discharge Stats Summary ", Sys.Date(), ".xlsx"))
 
@@ -533,21 +533,21 @@ stacked_bar("MSQ")
 stacked_bar("MSBI")
 stacked_bar("MSB")
 stacked_bar("MSW")
-stacked_bar("MSSL")
+stacked_bar("MSM")
 
 msh_stacked_bar_dow <- stacked_bar("MSH")
 msq_stacked_bar_dow <- stacked_bar("MSQ")
 msbi_stacked_bar_dow <- stacked_bar("MSBI")
 msb_stacked_bar_dow <- stacked_bar("MSB")
 msw_stacked_bar_dow <- stacked_bar("MSW")
-mssl_stacked_bar_dow <- stacked_bar("MSSL")
+msm_stacked_bar_dow <- stacked_bar("MSM")
 
 ggsave(path = graphs_tables_output_location, file = paste("MSH Stacked Bar DOW 3", Sys.Date(), ".png"), plot = msh_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSQ Stacked Bar DOW", Sys.Date(), ".png"), plot = msq_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSBI Stacked Bar DOW", Sys.Date(), ".png"), plot = msbi_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSB Stacked Bar DOW", Sys.Date(), ".png"), plot = msb_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSW Stacked Bar DOW", Sys.Date(), ".png"), plot = msw_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSSL Stacked Bar DOW", Sys.Date(), ".png"), plot = mssl_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSM Stacked Bar DOW", Sys.Date(), ".png"), plot = msm_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 
 # Plot weekend discharges over time for last 12 weeks ---------------------
 weekend_trend <- function(site) {
@@ -589,7 +589,7 @@ weekend_trend <- function(site) {
 # weekend_trend(site = "MSBI")
 # weekend_trend(site = "MSB")
 # weekend_trend(site = "MSW")
-# weekend_trend(site = "MSSL")
+# weekend_trend(site = "MSM")
 
 weekend_trend_old_new_targets <- function(site) {
   trends_lookback <- 12
@@ -638,21 +638,21 @@ weekend_trend_old_new_targets(site = "MSQ")
 weekend_trend_old_new_targets(site = "MSBI")
 weekend_trend_old_new_targets(site = "MSB")
 weekend_trend_old_new_targets(site = "MSW")
-weekend_trend_old_new_targets(site = "MSSL")
+weekend_trend_old_new_targets(site = "MSM")
 
 msh_graph_wkendtrend <- weekend_trend_old_new_targets("MSH")
 msq_graph_wkendtrend <- weekend_trend_old_new_targets("MSQ")
 msbi_graph_wkendtrend <- weekend_trend_old_new_targets("MSBI")
 msb_graph_wkendtrend <- weekend_trend_old_new_targets("MSB")
 msw_graph_wkendtrend <- weekend_trend_old_new_targets("MSW")
-mssl_graph_wkendtrend <- weekend_trend_old_new_targets("MSSL")
+msm_graph_wkendtrend <- weekend_trend_old_new_targets("MSM")
 
 ggsave(path = graphs_tables_output_location, file = paste("MSH Weekend Discharge Trends", Sys.Date(), ".png"), plot = msh_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSQ Weekend Discharge Trends", Sys.Date(), ".png"), plot = msq_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSBI Weekend Discharge Trends", Sys.Date(), ".png"), plot = msbi_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSB Weekend Discharge Trends", Sys.Date(), ".png"), plot = msb_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSW Weekend Discharge Trends", Sys.Date(), ".png"), plot = msw_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSSL Weekend Discharge Trends", Sys.Date(), ".png"), plot = mssl_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSM Weekend Discharge Trends", Sys.Date(), ".png"), plot = msm_graph_wkendtrend, device = "png", width = 4.8, height = 4.2, units = "in")
 
 # Plot weekend discharges as percent of total weekly discharges over time -------------------------------
 
@@ -679,14 +679,14 @@ weekend_percent_trends("MSQ")
 weekend_percent_trends("MSBI")
 weekend_percent_trends("MSB")
 weekend_percent_trends("MSW")
-weekend_percent_trends("MSSL")
+weekend_percent_trends("MSM")
 
 msh_graph_wkend_percent_trend <- weekend_percent_trends("MSH")
 msq_graph_wkend_percent_trend <- weekend_percent_trends("MSQ")
 msbi_graph_wkend_percent_trend <- weekend_percent_trends("MSBI")
 msb_graph_wkend_percent_trend <- weekend_percent_trends("MSB")
 msw_graph_wkend_percent_trend <- weekend_percent_trends("MSW")
-mssl_graph_wkend_percent_trend <- weekend_percent_trends("MSSL")
+msm_graph_wkend_percent_trend <- weekend_percent_trends("MSM")
 
 
 ggsave(path = graphs_tables_output_location, file = paste("MSH Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msh_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
@@ -694,7 +694,7 @@ ggsave(path = graphs_tables_output_location, file = paste("MSQ Weekend Percent D
 ggsave(path = graphs_tables_output_location, file = paste("MSBI Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msbi_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSB Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msb_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
 ggsave(path = graphs_tables_output_location, file = paste("MSW Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msw_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
-ggsave(path = graphs_tables_output_location, file = paste("MSSL Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = mssl_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSM Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = msm_graph_wkend_percent_trend, device = "png", width = 5.8, height = 4.8, units = "in")
 
 mshs_colors <- c("#221F72", "#00AEEF", "#D80B8C", "#B2B3B2", "#C7C6EF", "#FCC9E9")
 

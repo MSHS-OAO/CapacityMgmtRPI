@@ -10,6 +10,7 @@ rm(list = ls())
 #install.packages("svDialogs")
 #install.packages("stringr")
 #install.packages("formattable")
+# install.packages("ggpubr")
 
 #Analysis for weekend discharge tracking
 library(readxl)
@@ -22,6 +23,7 @@ library(svDialogs)
 library(stringr)
 library(formattable)
 library(scales)
+library(ggpubr)
 
 # Set working directory and select raw data ----------------------------
 getwd()
@@ -550,39 +552,39 @@ ggsave(path = graphs_tables_output_location, file = paste("MSW Stacked Bar DOW",
 ggsave(path = graphs_tables_output_location, file = paste("MSM Stacked Bar DOW", Sys.Date(), ".png"), plot = msm_stacked_bar_dow, device = "png", width = 4.8, height = 4.2, units = "in")
 
 # Plot weekend discharges over time for last 12 weeks ---------------------
-weekend_trend <- function(site) {
-  trends_lookback <- 12
-  trends_first_week <- max(wkend_comb_disch_vol$WeekNumber[wkend_comb_disch_vol$Site == site], na.rm = TRUE) - trends_lookback + 1
-  ggplot(data = wkend_comb_disch_vol[(wkend_comb_disch_vol$Site == site) & (wkend_comb_disch_vol$WeekNumber >= trends_first_week), ]) +
-    
-    geom_hline(aes(yintercept = Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
-    geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site]), vjust = -0.5, hjust = -0.5) +
-    
-    geom_hline(aes(yintercept = Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site], color = "Target", linetype = "Target")) +
-    geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
-    
-    geom_line(mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
-    geom_point(mapping = aes(x = SatDate, y = TotalDisch), color = "#00AEEF", size = 1.5) +
-    geom_text(mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = -0.25) +
-    
-    labs(title = paste(site, "Weekend Discharges: 12 Week Lookback"), x = "Week Of", y = "Discharge Volume") +
-    theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", axis.text.x = element_text(angle = 30, hjust = 1)) +
-    
-    # scale_x_discrete(expand = c(0, 0, 0.05, 0.5)) +
-    # scale_y_continuous(expand = c(0, 5, 0.2, 0.5)) +
-    scale_x_discrete(expand = c(0, 0, 0, 1.2)) +
-    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
-    
-    
-    scale_linetype_manual(name = "", values = c("Baseline" = "dashed",
-                                                "Target" = "solid",
-                                                "Actual" = "solid")) +
-    
-    scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c",
-                                             "Target" = "black",
-                                             "Actual" = "#00AEEF"))
-}
+# weekend_trend <- function(site) {
+#   trends_lookback <- 12
+#   trends_first_week <- max(wkend_comb_disch_vol$WeekNumber[wkend_comb_disch_vol$Site == site], na.rm = TRUE) - trends_lookback + 1
+#   ggplot(data = wkend_comb_disch_vol[(wkend_comb_disch_vol$Site == site) & (wkend_comb_disch_vol$WeekNumber >= trends_first_week), ]) +
+#     
+#     geom_hline(aes(yintercept = Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
+#     geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Baseline'[Site_Baseline_Targets$Site == site]), vjust = -0.5, hjust = -0.5) +
+#     
+#     geom_hline(aes(yintercept = Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site], color = "Target", linetype = "Target")) +
+#     geom_text(aes(length(SatDate), Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site], label = Site_Baseline_Targets$'Weekend Target'[Site_Baseline_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
+#     
+#     geom_line(mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
+#     geom_point(mapping = aes(x = SatDate, y = TotalDisch), color = "#00AEEF", size = 1.5) +
+#     geom_text(mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = -0.25) +
+#     
+#     labs(title = paste(site, "Weekend Discharges: 12 Week Lookback"), x = "Week Of", y = "Discharge Volume") +
+#     theme_bw() +
+#     theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", axis.text.x = element_text(angle = 30, hjust = 1)) +
+#     
+#     # scale_x_discrete(expand = c(0, 0, 0.05, 0.5)) +
+#     # scale_y_continuous(expand = c(0, 5, 0.2, 0.5)) +
+#     scale_x_discrete(expand = c(0, 0, 0, 1.2)) +
+#     scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+#     
+#     
+#     scale_linetype_manual(name = "", values = c("Baseline" = "dashed",
+#                                                 "Target" = "solid",
+#                                                 "Actual" = "solid")) +
+#     
+#     scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c",
+#                                              "Target" = "black",
+#                                              "Actual" = "#00AEEF"))
+# }
 
 # weekend_trend(site = "MSH")
 # weekend_trend(site = "MSQ")
@@ -598,10 +600,10 @@ weekend_trend_old_new_targets <- function(site) {
     
     geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
     geom_text(aes(length(SatDate), Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site]), vjust = -0.5, hjust = -0.5) +
-    
-    geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site], color = "Original Target", linetype = "Original Target")) +
-    geom_text(aes(length(SatDate), Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
-    
+    ## Only plot new targets
+    # geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site], color = "Original Target", linetype = "Original Target")) +
+    # geom_text(aes(length(SatDate), Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
+    # 
     geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], color = "Updated Target", linetype = "Updated Target")) +
     geom_text(aes(length(SatDate), Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
     
@@ -620,16 +622,18 @@ weekend_trend_old_new_targets <- function(site) {
     
     
     scale_linetype_manual(name = "", values = c("Baseline" = "dashed",
-                                                "Original Target" = "dashed",
+                                                # "Original Target" = "dashed",
                                                 "Updated Target" = "solid", 
                                                 "Actual" = "solid"),
-                          labels = c("Actual", "Baseline", "Old Target", "New Target")) +
+                          # labels = c("Actual", "Baseline", "Old Target", "New Target")) +
+                          labels = c("Actual", "Baseline", "Target")) +
     
     scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c",
-                                             "Original Target" = "black",
+                                             # "Original Target" = "black",
                                              "Updated Target" = "black",
                                              "Actual" = "#00AEEF"),
-                       labels = c("Actual", "Baseline", "Old Target", "New Target"))
+                       # labels = c("Actual", "Baseline", "Old Target", "New Target")) +
+                       labels = c("Actual", "Baseline", "Target"))
     
 }
 
@@ -700,7 +704,7 @@ ggsave(path = graphs_tables_output_location, file = paste("MSM Weekend Percent D
 
 mshs_colors <- c("#221F72", "#00AEEF", "#D80B8C", "#B2B3B2", "#C7C6EF", "#FCC9E9")
 
-trends_lookback <- 16
+trends_lookback <- 12
 trends_first_week <- max(weekly_totals$WeekNumber[!is.na(weekly_totals$WkendPercent)], na.rm = TRUE) - trends_lookback + 1
 mshs_wkend_percent <- ggplot(data = weekly_totals[(weekly_totals$WeekNumber >= trends_first_week) & !is.na(weekly_totals$WkendPercent), ]) +
   geom_line(mapping = aes(x = SatDate, y = WkendPercent, group = Site, color = Site, linetype = Site), size = 1) + 
@@ -717,57 +721,166 @@ mshs_wkend_percent <- ggplot(data = weekly_totals[(weekly_totals$WeekNumber >= t
 
 ggsave(path = graphs_tables_output_location, file = paste("MSHS Weekend Percent Discharge Trends", Sys.Date(), ".png"), plot = mshs_wkend_percent, device = "png", width = 6, height = 5, units = "in")
 
-# Create plot with weekend discharge volume on primary y-axis and weekend discharges as percent of total discharges on secondary axis -----------------------
 
-site <- "MSH"
+# Create a plot with average weekend and weekday daily discharges ---------------------------------
+avg_wkend_wkday_daily_disch <- function(site) {
+  trends_lookback <- 12
+  trends_first_week <- max(weekly_totals$WeekNumber[weekly_totals$Site == site], na.rm = TRUE) - trends_lookback + 1
+  ggplot(data = weekly_totals[(weekly_totals$Site == site) & (weekly_totals$WeekNumber >= trends_first_week), ]) +
+    geom_line(mapping = aes(x = SatDate, y = WkendAvg, group = 1, color = "Weekend", linetype = "Weekend"), size = 1) + 
+    geom_point(mapping = aes(x = SatDate, y = WkendAvg, color = "Weekend"), size = 2) +
+    
+    geom_line(mapping = aes(x = SatDate, y = WkdayAvg, group = 1, color = "Weekday", linetype = "Weekday"), size = 1, na.rm = TRUE) + 
+    geom_point(mapping = aes(x = SatDate, y = WkdayAvg, color = "Weekday"), size = 2, na.rm = TRUE) +
+    
+    labs(title = paste(site, "Average Daily Discharges:", trends_lookback, "Week Lookback"), x = "Week Of", y = "Discharge Volume") +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", axis.text.x = element_text(angle = 30, hjust = 1)) +
+    
+    scale_x_discrete(expand = c(0, 0.5, 0, .5)) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    scale_linetype_manual(name = "", values = c("Weekend" = "solid", "Weekday" = "dashed")) +
+    scale_color_manual(name = "", values = c("Weekend" = "#00AEEF", "Weekday" = "#221f72"))
+  
+}
 
-trends_lookback <- 12
-trends_first_week <- max(wkend_comb_disch_vol$WeekNumber[wkend_comb_disch_vol$Site == site], na.rm = TRUE) - trends_lookback + 1
+avg_wkend_wkday_daily_disch("MSH")
+avg_wkend_wkday_daily_disch("MSQ")
+avg_wkend_wkday_daily_disch("MSBI")
+avg_wkend_wkday_daily_disch("MSB")
+avg_wkend_wkday_daily_disch("MSW")
+avg_wkend_wkday_daily_disch("MSM")
 
-disch_vol_data <- wkend_comb_disch_vol[(wkend_comb_disch_vol$Site == site) & (wkend_comb_disch_vol$WeekNumber >= trends_first_week), ]
-disch_percent_data <- weekly_totals[weekly_totals$Site == site & weekly_totals$WeekNumber >= trends_first_week & !is.na(weekly_totals$WkendPercent), ]
 
-scale <- mean(max(disch_vol_data$TotalDisch)/max(disch_percent_data$WkendPercent), min(disch_vol_data$TotalDisch)/min(disch_percent_data$WkendPercent))
+# Create new functions for graphing multiple plots in one plot area -----------------------------
 
-ggplot() +
-  # Plot baseline weekend discharges
-  geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], linetype = "Baseline"), color = "#8c8c8c") +
-  # geom_text(aes(length(disch_vol_data$SatDate), Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site]), vjust = -0.5, hjust = -0.5) +
-  # Plot target weekend discharges
-  geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site], linetype = "Original Target"), color = "black") +
-  # geom_text(aes(length(disch_vol_data$SatDate), Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Original Target'[Site_Original_Updated_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
-  
-  geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], linetype = "Updated Target"), color = "black") +
-  # geom_text(aes(length(disch_vol_data$SatDate), Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
-  # Plot actual weekend discharges
-  geom_line(data = disch_vol_data, mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual"), linetype = "solid", size = 1) + 
-  geom_point(data = disch_vol_data, mapping = aes(x = SatDate, y = TotalDisch, color = "Actual"), shape = 16, size = 2) +
-  # geom_text(data = disch_vol_data, mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = -0.25) +
-  # Plot weekend discharges as percent total weekly discharges
-  geom_line(data = disch_percent_data, mapping = aes(x = SatDate, y = WkendPercent*scale, group = 1, color = "Percent"), linetype = "solid") +
-  geom_point(data = disch_percent_data, mapping = aes(x = SatDate, y = WkendPercent*scale, color = "Percent"), shape = 18, size = 2) +
-  
-  
-  labs(title = paste(site, "Weekend Discharges:", trends_lookback, "Week Lookback"), x = "Week Of", y = "Discharge Volume") +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom", legend.box = "vertical", legend.justification = "center", legend.key.width = unit(.375,"inch"), axis.text.x = element_text(angle = 30, hjust = 1)) +
-  
-  scale_x_discrete(expand = c(0, 0.5, 0, 1.5)) +
-  scale_y_continuous(expand = c(0.2, 0, 0.2, 0), sec.axis = sec_axis(~./scale, name = "Percent of Total Weekly Discharges", labels = percent_format(accuracy = 1))) +
-  
-  scale_color_manual(name = "Metric", values = c("Actual" = "#00AEEF",
-                                                 "Percent" = "#D80B8C"),
-                     breaks = c("Actual", "Percent"), 
-                     labels = c("Wkend Disch Volume", "% Weekly Disch")) +
-  
-  scale_linetype_manual(name = "Reference", values = c("Baseline" = "dashed",
-                                              "Original Target" = "dashed",
-                                              "Updated Target" = "solid"),
-                        breaks = c("Baseline", "Original Target", "Updated Target"),
-                        labels = c("Baseline", "Orig Target", "New Target")) +
-  guides(color = guide_legend(order = 1), linetype = guide_legend(order = 2))
-  
- #+
-  # scale_shape_manual(name = "", values = c("Baseline" = NA, "Original Target" = NA, "Updated Target" = NA, "Actual" = 16, "Percent" = 18),
-  #                    labels = c("Actual", "Baseline", "Old Target", "New Target", "Percentage"))
+# Select lookback period to use for all graphs
+lookback_period <- 12 # 12 week lookback period
+trends_first_week <- trends_first_week <- max(wkend_comb_disch_vol$WeekNumber[wkend_comb_disch_vol$Site == site], na.rm = TRUE) - lookback_period + 1
 
+
+stacked_bar_multi <- function(site) {
+  ggplot(data = site_summary_daily_disch_vol[site_summary_daily_disch_vol$Site == site & site_summary_daily_disch_vol$WeekNumber >= trends_first_week, ]) +
+    geom_col(mapping = aes(x = SatDate, y = TotalDisch, fill = DischDOW), 
+             position = position_stack(reverse = TRUE)) +
+    labs(title = paste(site, "Discharges by DOW"), y = "Discharge Volume") + #, x = "Week Of" +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5, size = 11), 
+          legend.position = "bottom", legend.box.spacing = unit(0, "cm"), legend.key.size = unit(0.5, "cm"),
+          legend.title = element_text(size = 10), 
+          axis.text.x = element_text(angle = 30, hjust = 1), 
+          axis.title.x = element_blank(), axis.title.y = element_text(size = 10)) +
+    guides(fill = guide_legend(reverse = FALSE, title = "Day of Week")) +
+    geom_text(aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "white", position = position_stack(vjust = 0.5), size = 3) +
+    geom_text(data = weekly_totals[weekly_totals$Site == site & weekly_totals$WeekNumber >= trends_first_week, ], aes(x = SatDate, y = WklyTotal, label = WklyTotal), color = "black", vjust = -0.5, size = 3) +
+    scale_fill_manual(values = sinai_colors) +
+    scale_y_continuous(expand = c(0, 0, 0.1, 0))
+}
+
+# stacked_bar_multi("MSH")
+
+weekend_volume_new_targets_multi <- function(site) {
+  ggplot(data = wkend_comb_disch_vol[(wkend_comb_disch_vol$Site == site) & (wkend_comb_disch_vol$WeekNumber >= trends_first_week), ]) +
+    
+    geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
+    geom_label(aes(length(SatDate), Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site]), vjust = 0.5, hjust = 0.25, size = 3) +
+    
+    geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], color = "Updated Target", linetype = "Updated Target")) +
+    geom_label(aes(length(SatDate), Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site]),  vjust = 0.5, hjust = 0.25, size = 3) +
+    
+    geom_line(mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
+    geom_point(mapping = aes(x = SatDate, y = TotalDisch, color = "Actual"), size = 1.5) +
+    geom_text(mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = 1, size = 3) +
+    
+    labs(title = paste(site, "Weekend Discharge Volume"), y = "Discharge Volume") + #, x = "Week Of" +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5, size = 11), 
+          legend.position = "bottom", legend.justification = "center", legend.key.width = unit(.375,"inch"), legend.box.spacing = unit(0, "cm"), 
+          axis.text.x = element_text(angle = 30, hjust = 1), 
+          axis.title.x = element_blank(), axis.title.y = element_text(size = 10)) +
+    
+    scale_x_discrete(expand = c(0, 0.5, 0, 0.65)) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    
+    scale_linetype_manual(name = "", values = c("Baseline" = "dashed", "Updated Target" = "solid", "Actual" = "solid"), labels = c("Actual", "Baseline", "Target")) +
+    scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c", "Updated Target" = "black", "Actual" = "#00AEEF"), labels = c("Actual", "Baseline", "Target")) +
+    guides(linetype = guide_legend(override.aes = list(shape = c(16, NA, NA))))
+  
+}
+
+# weekend_volume_new_targets_multi("MSM")
+
+weekend_percent_multi <- function(site) {
+  ggplot(data = weekly_totals[(weekly_totals$Site == site) & (weekly_totals$WeekNumber >= trends_first_week), ]) +
+    geom_line(mapping = aes(x = SatDate, y = WkendPercent, group = 1, color = "Actual", linetype = "Actual"), size = 1, na.rm = TRUE) + 
+    geom_point(mapping = aes(x = SatDate, y = WkendPercent, color = "Actual"), size = 2, na.rm = TRUE) +
+    
+    labs(title = paste(site, "Weekend as Percent of Total Weekly Discharges"), y = "Percent of Discharges") + #, x = "Week Of" +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5, size = 11), 
+          legend.position = "bottom", legend.justification = "center", legend.key.width = unit(.375,"inch"), legend.box.spacing = unit(0, "cm"), 
+          axis.text.x = element_text(angle = 30, hjust = 1), 
+          axis.title.x = element_blank(), axis.title.y = element_text(size = 10)) +
+    
+    scale_x_discrete(expand = c(0, 0.5, 0, 0.65)) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0), labels = percent_format(accuracy = 1)) +
+    scale_linetype_manual(name = "", values = c("Actual" = "solid"), labels = c("Actual")) +
+    scale_color_manual(name = "", values = c("Actual" = "#00AEEF"), labels = c("Actual"))
+  
+}
+
+# weekend_percent_multi("MSH")
+
+avg_wkend_wkday_disch_multi <- function(site) {
+  ggplot(data = weekly_totals[(weekly_totals$Site == site) & (weekly_totals$WeekNumber >= trends_first_week), ]) +
+    geom_line(mapping = aes(x = SatDate, y = WkendAvg, group = 1, color = "Weekend", linetype = "Weekend"), size = 1) + 
+    geom_point(mapping = aes(x = SatDate, y = WkendAvg, color = "Weekend", shape = "Weekend"), size = 2) +
+    
+    geom_line(mapping = aes(x = SatDate, y = WkdayAvg, group = 1, color = "Weekday", linetype = "Weekday"), size = 1, na.rm = TRUE) + 
+    geom_point(mapping = aes(x = SatDate, y = WkdayAvg, color = "Weekday", shape = "Weekday"), size = 2, na.rm = TRUE) +
+    
+    labs(title = paste(site, "Average Daily Discharges"), y = "Discharge Volume") + #, x = "Week Of" +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5, size = 11), 
+          legend.position = "bottom", legend.justification = "center", legend.key.width = unit(.375,"inch"), legend.box.spacing = unit(0, "cm"), 
+          axis.text.x = element_text(angle = 30, hjust = 1),
+          axis.title.x = element_blank(), axis.title.y = element_text(size = 10)) +
+    
+    scale_x_discrete(expand = c(0, 0.5, 0, .5)) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    scale_linetype_manual(name = "", values = c("Weekend" = "solid", "Weekday" = "solid")) +
+    scale_color_manual(name = "", values = c("Weekend" = "#00AEEF", "Weekday" = "#221f72")) +
+    scale_shape_manual(name = "", values = c("Weekend" = 16, "Weekday" = 17), guide_legend(show = FALSE)) +
+    
+    guides(linetype = guide_legend(reverse = TRUE, override.aes = list(shape = c(16, 17))), color = guide_legend(reverse = TRUE))
+  
+}
+
+# avg_wkend_wkday_disch_multi("MSH")
+
+# p1 <- weekend_volume_new_targets_multi("MSH")
+# p2 <- stacked_bar_multi("MSH")
+# p3 <- weekend_percent_multi("MSH")
+# p4 <- avg_wkend_wkday_disch_multi("MSH")
+# 
+# figure <- ggarrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+# 
+# ggsave(path = graphs_tables_output_location, file = paste("MSH Multiplot Test v6", Sys.Date(), ".png"), plot = figure, device = "png", width = 9.6, height = 6.1, units = "in")
+# 
+
+# Create a function to plot all 4 metrics and save as file for each site
+metrics_multi_plot <- function(site) {
+  p1 <- weekend_volume_new_targets_multi(site)
+  p2 <- stacked_bar_multi(site)
+  p3 <- weekend_percent_multi(site)
+  p4 <- avg_wkend_wkday_disch_multi(site)
+  multi_fig <- ggarrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+  ggsave(path = graphs_tables_output_location, file = paste(site, "Multiplot Test", Sys.Date(), ".png"), plot = multi_fig, device = "png", width = 9.6, height = 6.1, units = "in")
+}
+
+metrics_multi_plot("MSH")
+metrics_multi_plot("MSQ")
+metrics_multi_plot("MSBI")
+metrics_multi_plot("MSB")
+metrics_multi_plot("MSW")
+metrics_multi_plot("MSM")

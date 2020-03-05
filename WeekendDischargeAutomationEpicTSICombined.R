@@ -10,7 +10,7 @@ rm(list = ls())
 #install.packages("svDialogs")
 #install.packages("stringr")
 #install.packages("formattable")
-# install.packages("ggpubr")
+#install.packages("ggpubr")
 
 #Analysis for weekend discharge tracking
 library(readxl)
@@ -27,7 +27,8 @@ library(ggpubr)
 
 # Set working directory and select raw data ----------------------------
 getwd()
-setwd("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data")
+#setwd("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data")
+setwd("J:\\deans\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data")
 
 # User inputs to determine scenario
 initial_run <- dlgInput(message = "Is this the initial run of the script (Yes/No)? (During the initial run, baseline data is preprocessed and exported and the Epic historical repository is initiated.)")$res

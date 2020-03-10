@@ -1,0 +1,477 @@
+rm(list = ls())
+
+#Install and load necessary packages --------------------
+#install.packages("readraw_dfl")
+#install.packages("writeraw_dfl")
+#install.packages("ggplot2")
+#install.packages("lubridate")
+#install.packages("dplyr")
+#install.packages("reshape2")
+#install.packages("svDialogs")
+#install.packages("stringr")
+#install.packages("formattable")
+# install.packages("scales")
+
+#Analysis for weekend discharge tracking
+library(readxl)
+library(writexl)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(reshape2)
+library(svDialogs)
+library(stringr)
+library(formattable)
+library(scales)
+
+# Set working directory and select raw data ----------------------------
+getwd()
+setwd("J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data")
+
+# Reference files and constants ----------------------------------------
+ref_file <- "Analysis Reference\\Epic and TSI Data Analysis Reference 2020-01-21.xlsx"
+epic_site_dict <- read_excel(ref_file, sheet = "EpicSites")
+epic_unit_excl <- read_excel(ref_file, sheet = "EpicUnitExclusions")
+tsi_site_dict <- read_excel(ref_file, sheet = "TSISites")
+tsi_dispo_dict <- read_excel(ref_file, sheet = "TSIDispo")
+tsi_dispo_dict[is.na(tsi_dispo_dict$`Discharge Disposition Desc Msx`), 1] <- "Unknown"
+tsi_service_line_excl <- read_excel(ref_file, sheet = "TSIServiceLines")
+
+site_order <- c("MSH", "MSQ", "MSBI", "MSB", "MSW", "MSSL")
+DischDOW_Order <- c("Sat-Mon", "Tue", "Wed", "Thu", "Fri")
+
+rpi_start <- as.Date("10/26/2019", "%m/%d/%Y")
+
+graphs_tables_output_location <- choose.dir(caption = "Select folder to save graphs and tables", default = "J:\\Presidents\\HSPI-PM\\Operations Analytics and Optimization\\Projects\\Service Lines\\Capacity Management\\Data\\Statistical Significance")
+
+# Function to determine week number of year using Sat as first DOW --------------------------------------------------
+weeknum <- function(x) {
+  # yr <<- year(x)
+  # new_yr <<- as.Date(paste0("1/1/", yr), format = "%m/%d/%Y")
+  # new_yr_wkday <<- wday(new_yr, label = FALSE)
+  # new_yr_sat <<- new_yr + (7 - new_yr_wkday)
+  first_sat_2019 <<- as.Date("1/5/19", format = "%m/%d/%y")
+  elapsed_days <<- as.numeric(x - first_sat_2019)
+  week_number <<- ifelse(elapsed_days < 0, 1, as.integer(elapsed_days/7)+2)
+  week_number
+}
+
+# Create custom functions to preprocess billing data with input as raw billing dataframe -----------------
+preprocess_tsi <- function(tsi_raw_df) {
+  # Format admit and discharge dates and pull out year, month, DOW, etc.
+  tsi_raw_df[ , c("AdmitDate", "DischDate")] <- lapply(tsi_raw_df[ , c("Admit.Dt.Src", "Dsch.Dt.Src")], as.Date, "%m/%d/%Y")
+  tsi_raw_df$DischDateTime <- as.POSIXct(paste(tsi_raw_df$Dsch.Dt.Src, tsi_raw_df$Dsch.Time.Src),  tz = "UTC", format = "%m/%d/%Y %H:%M")
+  tsi_raw_df[ , c("AdmitYr", "AdmitMo")] <- c(year(tsi_raw_df$AdmitDate), month(tsi_raw_df$AdmitDate))
+  tsi_raw_df[ , c("DischYr", "DischMo", "DischHr")] <- c(year(tsi_raw_df$DischDate), month(tsi_raw_df$DischDate), hour(tsi_raw_df$DischDateTime))
+  tsi_raw_df$DischDOW <- wday(tsi_raw_df$DischDate, label = TRUE, abbr = TRUE)
+  
+  # Lookup tables for site, discharge disposition, service line inclusion/exclusion ----------------------------------------------
+  # Site lookup
+  # tsi_raw_df$Facility.Msx <- as.character(tsi_raw_df$Facility.Msx)
+  tsi_raw_df <- left_join(tsi_raw_df, tsi_site_dict, by = c("Facility.Msx" = "Facility Msx"))
+  # tsi_raw_df$Site <- factor(tsi_raw_df$Site, levels = site_order, ordered = TRUE)
+  
+  # Discharge disposition formatting and lookup
+  # tsi_raw_df$Discharge.Disposition.Desc.Msx <- factor(tsi_raw_df$Discharge.Disposition.Desc.Msx, levels = c(levels(tsi_raw_df$Discharge.Disposition.Desc.Msx), "Blank"))
+  # tsi_raw_df[is.na(tsi_raw_df$Discharge.Disposition.Desc.Msx), "Discharge.Disposition.Desc.Msx"] <- "Blank"
+  # tsi_raw_df$Discharge.Disposition.Desc.Msx <- as.character(tsi_raw_df$Discharge.Disposition.Desc.Msx)
+  tsi_raw_df <- left_join(tsi_raw_df, tsi_dispo_dict, by = c("Discharge.Disposition.Desc.Msx" = "Discharge Disposition Desc Msx"))
+  colnames(tsi_raw_df)[ncol(tsi_raw_df)] <- "DispoRollUp"
+  tsi_raw_df[is.na(tsi_raw_df$DispoRollUp), "DispoRollUp"] <- "Unknown"
+  
+  # Service line inclusion / exclusion lookup
+  colnames(tsi_raw_df)[colnames(tsi_raw_df) == "Service.Desc.Msx"] <- "ServiceLine"
+  # tsi_raw_df$ServiceLine <- as.character(tsi_raw_df$ServiceLine)
+  tsi_raw_df$ServiceLine <- ifelse(is.na(tsi_raw_df$ServiceLine), "Unknown", tsi_raw_df$ServiceLine)
+  tsi_raw_df <- left_join(tsi_raw_df, tsi_service_line_excl[ , c(1,3)], by = c("ServiceLine" = "Service Desc Msx"))
+  colnames(tsi_raw_df)[ncol(tsi_raw_df)] <- "ServiceLineInclude"
+  
+  # Exclude encounters with expired disposition and specified service lines
+  tsi_raw_df$Include <- ifelse(tsi_raw_df$DispoRollUp == "Expired" | tsi_raw_df$ServiceLineInclude == "No", FALSE, TRUE)
+  
+  tsi_raw_df$Week_Num <- weeknum(tsi_raw_df$DischDate)
+  tsi_raw_df$Weekend <- ifelse(tsi_raw_df$DischDOW == "Sat" | tsi_raw_df$DischDOW == "Sun" | tsi_raw_df$DischDOW == "Mon", TRUE, FALSE)
+  
+  # Subset only data that meets include criteria
+  tsi_raw_df_include <- tsi_raw_df[tsi_raw_df$Include == TRUE, ]
+  
+  # Further subset desired columns and reorganize these columsn for master dataframes
+  tsi_raw_df_subset <- tsi_raw_df_include[ , c("Encounter.No", "Msmrn", "ServiceLine", "Unit.Desc.Msx",
+                                               "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
+                                               "DischYr", "DischMo", "DischHr", "DischDOW",
+                                               "Site", "DispoRollUp", "ServiceLineInclude", "Include", "Week_Num", "Weekend")]
+  
+  colnames(tsi_raw_df_subset) <- c("EncounterNo", "MRN", "ServiceLine", "DischUnit",
+                                   "AdmitDate", "DischDate", "DischDateTime", "AdmitYr", "AdmitMo",
+                                   "DischYr", "DischMo", "DischHr", "DischDOW",
+                                   "Site", "Disposition", "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")
+  
+  tsi_raw_df_subset <- tsi_raw_df_subset[ , c("Site", "EncounterNo", "MRN", "AdmitDate", "DischDate", "DischDateTime",
+                                              "DischUnit", "ServiceLine", "Disposition",
+                                              "AdmitYr", "AdmitMo", "DischYr", "DischMo", "DischHr", "DischDOW",
+                                              "IncludeUnitOrServiceLine", "Include", "WeekNumber", "Weekend")]
+  
+  # Create output list with preprocessed data and preprocessed data to be included  --------------------------------
+  tsi_output <- list(tsi_raw_df, tsi_raw_df_include, tsi_raw_df_subset)
+  return(tsi_output)
+}
+
+
+# Import preprocessed baseline data ------------------------------------------
+baseline_data_file <- choose.files(default = paste0(getwd(), "/Script Data Outputs/*.*"), caption = "Select Excel file with preprocessed data for baseline period")
+sheet_names <- excel_sheets(baseline_data_file)
+baseline_list <- lapply(sheet_names, function(x) read_excel(baseline_data_file, sheet = x))
+names(baseline_list) <- sheet_names
+  
+for (i in 1:length(sheet_names)) {
+  assign(sheet_names[i], baseline_list[[i]])
+}
+  
+# Import Epic historical repository ------------------------------------------
+epic_hist_repo <- read_excel(choose.files(default = paste0(getwd(), "/Script Data Outputs/Epic Repo/*.*"), caption = "Select Excel file with Epic historical repository"), col_names = TRUE, na = c("", "NA"))
+  
+epic_site_dischunit_dispo_daily <- epic_hist_repo
+
+# Import TSI data from after baseline period ------------------------------------------------
+# Data used to establish baseline and targets remains constant
+tsi_raw_octdec19 <- read.csv("Discharge Billing Data\\MSBI Data Pulls\\MSBI Discharges Oct-Dec2019 2020-01-22.csv", header = TRUE, na.strings = c("", "NA"), stringsAsFactors = FALSE)
+tsi_raw_ytd20 <- read.csv(choose.files(caption = "Select 2020 YTD TSI report for MSBI"), header = TRUE, na.strings = c("", "NA"), stringsAsFactors = FALSE)
+
+tsi_raw_updates <- rbind(tsi_raw_octdec19, tsi_raw_ytd20)
+
+# Preprocess TSI updated raw data using custom functions --------------------------------------------
+tsi_updates_output <- preprocess_tsi(tsi_raw_updates)
+tsi_updates_preprocessed <- tsi_updates_output[[1]]
+tsi_updates_include <- tsi_updates_output[[2]]
+tsi_updates_subset <- tsi_updates_output[[3]]
+
+# Subset dataframes with relevant columns
+tsi_updates_subset <- tsi_updates_subset[tsi_updates_subset$Site == "MSBI", ]
+
+# Determine whether discharge occurred after RPI cycles began
+tsi_updates_subset$PostRPI <- tsi_updates_subset$DischDate >= rpi_start
+tsi_updates_subset <- tsi_updates_subset[tsi_updates_subset$PostRPI == TRUE, ]
+
+# Determine RPI end date for TSI sites
+tsi_disch_date_df <- unique(tsi_updates_subset[ , c("DischDate", "DischDOW")])
+tsi_rpi_end <- max(tsi_disch_date_df[tsi_disch_date_df$DischDOW == "Fri", "DischDate"])
+
+tsi_updates_subset <- tsi_updates_subset[tsi_updates_subset$DischDate >= rpi_start &  tsi_updates_subset$DischDate <= tsi_rpi_end, ]
+
+# Summarize data based on site, discharge unit, disposition, and service line
+tsi_site_dischunit_dispo_daily <- as.data.frame(tsi_updates_subset %>%
+                                                  group_by(Site, DischDate, DischUnit, Disposition, DischYr, DischMo, DischDOW, WeekNumber, Weekend) %>%
+                                                  summarize(TotalDisch = n()))
+
+# Combine historical and most recent data from both data systems
+comb_site_dischunit_dispo_daily <- rbind(tsi_site_dischunit_dispo_daily, epic_site_dischunit_dispo_daily)
+
+# Format combined data
+comb_site_dischunit_dispo_daily$Site <- factor(comb_site_dischunit_dispo_daily$Site, levels = site_order, ordered = TRUE)
+
+
+# Create daily list of discharges by site
+site_daily_disch_vol <- as.data.frame(comb_site_dischunit_dispo_daily %>%
+                                        group_by(Site, DischDate, WeekNumber, DischDOW, Weekend) %>%
+                                        summarize(TotalDisch = sum(TotalDisch)))
+
+# Create a list of week dates starting with Sat and ending with Fri
+week_num_dates <- as.data.frame(site_daily_disch_vol %>%
+                                  group_by(WeekNumber) %>%
+                                  summarize(SatDate = min(DischDate), FriDate = SatDate + 6, MonDate = SatDate + 2))
+
+week_num_dates[ , c("SatDate", "FriDate", "MonDate")] <- lapply(week_num_dates[ , c("SatDate", "FriDate", "MonDate")], format, "%m/%d/%y")
+
+week_num_dates$WeekOf <- paste0(week_num_dates$SatDate, "-", week_num_dates$FriDate)
+week_num_dates$WeekendOf <- paste0(week_num_dates$SatDate, "-", week_num_dates$MonDate)
+week_num_dates <- week_num_dates[ , c("WeekNumber", "SatDate", "WeekOf", "WeekendOf")]
+week_num_dates[ , c("SatDate", "WeekOf", "WeekendOf")] <- lapply(week_num_dates[ , c("SatDate", "WeekOf", "WeekendOf")], function(x) factor(x, levels = unique(x)))
+
+site_daily_disch_vol <- left_join(site_daily_disch_vol, week_num_dates, by = c("WeekNumber" = "WeekNumber"))
+
+wkday_daily_disch_vol <- site_daily_disch_vol[site_daily_disch_vol$Weekend != TRUE, ]
+wkend_daily_disch_vol <- site_daily_disch_vol[site_daily_disch_vol$Weekend == TRUE, ]
+
+wkend_summary_disch_vol <- as.data.frame(wkend_daily_disch_vol %>%
+                                           group_by(Site, WeekNumber, Weekend, SatDate, WeekOf, WeekendOf) %>%
+                                           summarize(DischDOW = "Sat-Mon", DischDate = min(DischDate), AvgDisch = mean(TotalDisch), TotalDisch = sum(TotalDisch)))
+
+wkday_summary_disch_vol <- as.data.frame(wkday_daily_disch_vol %>%
+                                           group_by(Site, WeekNumber, Weekend, SatDate, WeekOf, WeekendOf) %>%
+                                           summarize(DischDOW = "Tue-Fri", DischDate = min(DischDate), AvgDisch = mean(TotalDisch), TotalDisch = sum(TotalDisch)))
+
+# Create data frame summarizing weekend and weekday average and total discharges
+wkend_wkday_summary_disch_vol <- rbind(wkend_summary_disch_vol, wkday_summary_disch_vol)
+wkend_wkday_summary_disch_vol <- wkend_wkday_summary_disch_vol[order(wkend_wkday_summary_disch_vol$Site, wkend_wkday_summary_disch_vol$WeekNumber), ]
+rownames(wkend_wkday_summary_disch_vol) <- 1:nrow(wkend_wkday_summary_disch_vol)
+
+wkend_comb_disch_vol <- wkend_summary_disch_vol[ , c("Site", "WeekNumber", "SatDate", "WeekOf", "WeekendOf", "DischDate", "DischDOW", "Weekend", "TotalDisch")]
+wkday_comb_disch_vol <- wkday_summary_disch_vol[ , c("Site", "WeekNumber", "SatDate", "WeekOf", "WeekendOf", "DischDate", "DischDOW", "Weekend", "TotalDisch")]
+# wkday_daily_disch_vol <- wkday_daily_disch_vol[ , c("Site", "WeekNumber", "SatDate", "WeekOf", "WeekendOf", "DischDate", "DischDOW", "Weekend", "TotalDisch")]
+
+site_summary_disch_vol <- rbind(wkend_comb_disch_vol, wkday_comb_disch_vol)
+site_summary_disch_vol <- site_summary_disch_vol[order(site_summary_disch_vol$Site, site_summary_disch_vol$WeekNumber, site_summary_disch_vol$DischDate), ]
+site_summary_disch_vol$DischDOW <- factor(site_summary_disch_vol$DischDOW, levels = c("Sat-Mon", "Tue-Fri"))
+rownames(site_summary_disch_vol) <- 1:nrow(site_summary_disch_vol)
+
+# Create a table with total weekend discharges for each site
+wkend_total_table <- dcast(wkend_comb_disch_vol, Site ~ WeekendOf, value.var = "TotalDisch")
+Site_Baseline_Targets$Site <- factor(Site_Baseline_Targets$Site, levels = site_order, ordered = TRUE)
+wkend_total_rpi_tracker <- left_join(Site_Baseline_Targets[ , c("Site", "Weekend Baseline", "Weekend Target")], wkend_total_table, by = c("Site" = "Site"))
+
+# Create a table to track weekly status including total discharges, % weekend discharges, avg weekday discharges, avg weekend discharges
+weekly_totals <- as.data.frame(site_summary_disch_vol %>%
+                                 group_by(Site, WeekNumber, SatDate, WeekOf, WeekendOf) %>%
+                                 summarize(WkendTotal = sum(TotalDisch[Weekend == TRUE]), WklyTotal = sum(TotalDisch), WkendPercent = WkendTotal/WklyTotal, WkendAvg = sum(TotalDisch[Weekend == TRUE])/3, WkdayAvg = sum(TotalDisch[Weekend == FALSE])/4))
+
+weekly_totals$WkendPercent[weekly_totals$WkendPercent == 1] <- NA
+weekly_totals$WkdayAvg[!is.finite(weekly_totals$WkdayAvg)] <- NA
+
+# Manipulate baseline data ------------------------------
+
+baseline_daily_disch_vol <- Baseline_Total_Daily_Disch
+
+baseline_daily_disch_vol$DischDate <- as.Date(baseline_daily_disch_vol$DischDate, format = "%m/%d/%Y")
+
+baseline_daily_disch_vol$WeekNumber <- weeknum(baseline_daily_disch_vol$DischDate)
+
+baseline_week_num_dates <- as.data.frame(baseline_daily_disch_vol %>%
+                                           group_by(WeekNumber) %>%
+                                           summarize(SatDate = min(DischDate), FriDate = SatDate + 6, MonDate = SatDate + 2))
+
+
+baseline_week_num_dates[ , c("SatDate", "FriDate", "MonDate")] <- lapply(baseline_week_num_dates[ , c("SatDate", "FriDate", "MonDate")], format, "%m/%d/%y")
+
+baseline_week_num_dates$WeekOf <- paste0(baseline_week_num_dates$SatDate, "-", baseline_week_num_dates$FriDate)
+baseline_week_num_dates$WeekendOf <- paste0(baseline_week_num_dates$SatDate, "-", baseline_week_num_dates$MonDate)
+baseline_week_num_dates <- baseline_week_num_dates[ , c("WeekNumber", "SatDate", "WeekOf", "WeekendOf")]
+baseline_week_num_dates[ , c("SatDate", "WeekOf", "WeekendOf")] <- lapply(baseline_week_num_dates[ , c("SatDate", "WeekOf", "WeekendOf")], function(x) factor(x, levels = unique(x)))
+
+baseline_daily_disch_vol <- left_join(baseline_daily_disch_vol, baseline_week_num_dates, by = c("WeekNumber" = "WeekNumber"))
+
+baseline_daily_disch_vol$Weekend <- ifelse(baseline_daily_disch_vol$DischDOW == "Sat" | baseline_daily_disch_vol$DischDOW == "Sun" | baseline_daily_disch_vol$DischDOW == "Mon", TRUE, FALSE)
+
+baseline_wkday_daily_disch_vol <- baseline_daily_disch_vol[baseline_daily_disch_vol$Weekend != TRUE, ]
+baseline_wkend_daily_disch_vol <- baseline_daily_disch_vol[baseline_daily_disch_vol$Weekend == TRUE, ]
+
+baseline_wkend_summary_disch_vol <- as.data.frame(baseline_wkend_daily_disch_vol %>%
+                                           group_by(Site, WeekNumber, Weekend, SatDate, WeekOf, WeekendOf) %>%
+                                           summarize(DischDOW = "Sat-Mon", DischDate = min(DischDate), AvgDisch = mean(TotalDisch), TotalDisch = sum(TotalDisch)))
+
+baseline_wkday_summary_disch_vol <- as.data.frame(baseline_wkday_daily_disch_vol %>%
+                                           group_by(Site, WeekNumber, Weekend, SatDate, WeekOf, WeekendOf) %>%
+                                           summarize(DischDOW = "Tue-Fri", DischDate = min(DischDate), AvgDisch = mean(TotalDisch), TotalDisch = sum(TotalDisch)))
+
+# Create data frame summarizing weekend and weekday average and total discharges
+baseline_wkend_wkday_summary_disch_vol <- rbind(baseline_wkend_summary_disch_vol, baseline_wkday_summary_disch_vol)
+baseline_wkend_wkday_summary_disch_vol <- baseline_wkend_wkday_summary_disch_vol[order(baseline_wkend_wkday_summary_disch_vol$Site, baseline_wkend_wkday_summary_disch_vol$WeekNumber), ]
+rownames(baseline_wkend_wkday_summary_disch_vol) <- 1:nrow(baseline_wkend_wkday_summary_disch_vol)
+
+baseline_wkend_comb_disch_vol <- baseline_wkend_summary_disch_vol[ , c("Site", "WeekNumber", "SatDate", "WeekOf", "WeekendOf", "DischDate", "DischDOW", "Weekend", "TotalDisch")]
+baseline_wkday_comb_disch_vol <- baseline_wkday_summary_disch_vol[ , c("Site", "WeekNumber", "SatDate", "WeekOf", "WeekendOf", "DischDate", "DischDOW", "Weekend", "TotalDisch")]
+
+
+baseline_summary_disch_vol <- rbind(baseline_wkend_comb_disch_vol, baseline_wkday_comb_disch_vol)
+baseline_summary_disch_vol <- baseline_summary_disch_vol[order(baseline_summary_disch_vol$Site, baseline_summary_disch_vol$WeekNumber, baseline_summary_disch_vol$DischDate), ]
+baseline_summary_disch_vol$DischDOW <- factor(baseline_summary_disch_vol$DischDOW, levels = c("Sat-Mon", "Tue-Fri"))
+rownames(baseline_summary_disch_vol) <- 1:nrow(baseline_summary_disch_vol)
+
+# Create a table to track weekly status including total discharges, % weekend discharges, avg weekday discharges, avg weekend discharges
+baseline_weekly_totals <- as.data.frame(baseline_summary_disch_vol[baseline_summary_disch_vol$WeekNumber > 1, ] %>%
+                                 group_by(Site, WeekNumber, SatDate, WeekOf, WeekendOf) %>%
+                                 summarize(WkendTotal = sum(TotalDisch[Weekend == TRUE]), WklyTotal = sum(TotalDisch), WkendPercent = WkendTotal/WklyTotal, WkendAvg = sum(TotalDisch[Weekend == TRUE])/3, WkdayAvg = sum(TotalDisch[Weekend != TRUE])/4))
+
+baseline_weekly_totals$WkendPercent[baseline_weekly_totals$WkendPercent == 1] <- NA
+baseline_weekly_totals$WkdayAvg[!is.finite(baseline_weekly_totals$WkdayAvg)] <- NA
+
+baseline_weekly_totals$Site <- factor(baseline_weekly_totals$Site, levels = site_order, ordered = TRUE)
+baseline_weekly_totals <- baseline_weekly_totals[order(baseline_weekly_totals$Site), ]
+
+baseline_weekly_totals$PrePost <- "Pre"
+weekly_totals$PrePost <- "Post"
+
+pre_post_all_sites <- rbind(baseline_weekly_totals, weekly_totals)
+
+pre_post_all_sites$WkendPercent <- round(pre_post_all_sites$WkendPercent*100, digits = 1)
+
+pre_post_all_sites$PrePost <- factor(pre_post_all_sites$PrePost, levels = c("Pre", "Post"))
+pre_post_all_sites <- pre_post_all_sites[order(pre_post_all_sites$PrePost), ]
+
+# Create a table with summary stats for each site pre- and post-implementation
+pre_post_compare <- as.data.frame(pre_post_all_sites %>%
+                                    group_by(Site, PrePost) %>%
+                                    summarize(WkendDischAvg = mean(WkendTotal, na.rm = TRUE), WkendDischMedian = median(WkendTotal, na.rm = TRUE),
+                                              WkendPercentAvg = mean(WkendPercent, na.rm = TRUE), WkendPercentMedian = median(WkendPercent, na.rm = TRUE)))
+
+pre_post_compare_2 <- melt(pre_post_compare, id = c("Site", "PrePost"))
+pre_post_compare_2 <- dcast(pre_post_compare_2, Site + variable ~ PrePost, value.var = "value")
+
+
+# Create boxplots comparing weekend discharges pre- and post-implementation for each site ------------------------------------
+wkend_disch_boxplot <- function(weekly_distr_df, pre_post_summary_df, site) {
+  wkend_disch_end_date <- weekly_distr_df[weekly_distr_df$Site == site & weekly_distr_df$PrePost == "Post" & !is.na(weekly_distr_df$WkendTotal), ]
+  wkend_disch_end_date <- wkend_disch_end_date[wkend_disch_end_date$WeekNumber == max(wkend_disch_end_date$WeekNumber), "SatDate"]
+  wkend_disch_end_date <- format(as.Date(wkend_disch_end_date, format = "%m/%d/%y") + 2, "%m/%d/%y")
+  
+  ggplot(data = weekly_distr_df[weekly_distr_df$Site == site, ], aes(x = PrePost, y = WkendTotal, color = PrePost, fill = PrePost)) +
+    geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4) +
+    geom_text(data = pre_post_summary_df[pre_post_summary_df$Site == site, ], aes(x = PrePost, y = WkendDischMedian, label = round(WkendDischMedian, 1)), 
+              vjust = -0.5, show.legend = FALSE) +
+    labs(title = paste0(site, ": Boxplot of \n Weekend Discharges (Sat-Mon)"), x = "Measurement Period", y = "Discharge Volume") +
+    theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+    scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", paste0("Post-Impl (10/26/19-", wkend_disch_end_date, ")"))) +
+    scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", paste0("Post-Impl (10/26/19-", wkend_disch_end_date, ")"))) + 
+    scale_y_continuous(expand = c(0.1, 0, 0.1, 0)) +
+    scale_x_discrete(labels = c("Pre-Implementation", "Post-Implementation"))
+  
+}
+
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSH")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSQ")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSBI")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSB")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSW")
+wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSSL")
+
+msh_wkend_disch_plot <- wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSH")
+msq_wkend_disch_plot <- wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSQ")
+msbi_wkend_disch_plot <- wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSBI")
+msb_wkend_disch_plot <- wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSB")
+msw_wkend_disch_plot <- wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSW")
+mssl_wkend_disch_plot <- wkend_disch_boxplot(pre_post_all_sites, pre_post_compare,"MSSL")
+
+ggsave(path = graphs_tables_output_location, file = paste("MSH Wkend Disch Boxplot", Sys.Date(), ".png"), plot = msh_wkend_disch_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSQ Wkend Disch Boxplot", Sys.Date(), ".png"), plot = msq_wkend_disch_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSBI Wkend Disch Boxplot", Sys.Date(), ".png"), plot = msbi_wkend_disch_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSB Wkend Disch Boxplot", Sys.Date(), ".png"), plot = msb_wkend_disch_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSW Wkend Disch Boxplot", Sys.Date(), ".png"), plot = msw_wkend_disch_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSSL Wkend Disch Boxplot", Sys.Date(), ".png"), plot = mssl_wkend_disch_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+
+# Create boxplots comparing weekend discharges as percent of total weekly discharge pre- and post-implementation for each site ----------------------
+wkend_percent_boxplot <- function(weekly_distr_df, pre_post_summary_df, site) {
+  wkend_percent_end_date <- weekly_distr_df[weekly_distr_df$Site == site & weekly_distr_df$PrePost == "Post" & !is.na(weekly_distr_df$WkendPercent), ]
+  wkend_percent_end_date <- wkend_percent_end_date[wkend_percent_end_date$WeekNumber == max(wkend_percent_end_date$WeekNumber), "SatDate"]
+  wkend_percent_end_date <- format(as.Date(wkend_percent_end_date, format = "%m/%d/%y") + 6, "%m/%d/%y")
+  
+  ggplot(data = weekly_distr_df[weekly_distr_df$Site == site, ], aes(x = PrePost, y = WkendPercent, color = PrePost, fill = PrePost)) +
+    geom_boxplot(alpha = 0.2, outlier.color = "black", outlier.shape = 20, outlier.size = 4, na.rm = TRUE) +
+    geom_text(data = pre_post_summary_df[pre_post_summary_df$Site == site, ], aes(x = PrePost, y = WkendPercentMedian, label = paste0(round(WkendPercentMedian, 1), "%")), 
+                                                                                  vjust = -0.5, show.legend = FALSE) +
+    labs(title = paste0(site, ": Boxplot of Weekend Discharges \nas % of Total Weekly Discharges"), x = "Measurement Period", y = "% of Weekly Discharges") +
+    theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+    scale_fill_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", paste0("Post-Impl (10/26/19-", wkend_percent_end_date, ")"))) +
+    scale_color_manual(name = "", values = c("Pre" = "#221f72", "Post" = "#D80B8C"), labels = c("Pre-Impl (Jan-Sep '19)", paste0("Post-Impl (10/26/19-", wkend_percent_end_date, ")"))) + 
+    scale_y_continuous(expand = c(0.1, 0, 0.1, 0), labels = function(x) paste0(x, "%")) +
+    scale_x_discrete(labels = c("Pre-Implementation", "Post-Implementation"))
+}
+
+
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSH")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSQ")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSBI")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSB")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSW")
+wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSSL")
+
+msh_wkend_percent_plot <- wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSH")
+msq_wkend_percent_plot <- wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSQ")
+msbi_wkend_percent_plot <- wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSBI")
+msb_wkend_percent_plot <- wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSB")
+msw_wkend_percent_plot <- wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSW")
+mssl_wkend_percent_plot <- wkend_percent_boxplot(pre_post_all_sites, pre_post_compare,"MSSL")
+
+ggsave(path = graphs_tables_output_location, file = paste("MSH Wkend Percent Boxplot", Sys.Date(), ".png"), plot = msh_wkend_percent_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSQ Wkend Percent Boxplot", Sys.Date(), ".png"), plot = msq_wkend_percent_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSBI Wkend Percent Boxplot", Sys.Date(), ".png"), plot = msbi_wkend_percent_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSB Wkend Percent Boxplot", Sys.Date(), ".png"), plot = msb_wkend_percent_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSW Wkend Percent Boxplot", Sys.Date(), ".png"), plot = msw_wkend_percent_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+ggsave(path = graphs_tables_output_location, file = paste("MSSL Wkend Percent Boxplot", Sys.Date(), ".png"), plot = mssl_wkend_percent_plot, device = "png", width = 4.8, height = 4.8, units = "in")
+
+
+# Check for normality of data and equality of variance to determine if t-test can be used to compare pre- and post-implementation weekend discharge volumes ---------------------------------------
+wkend_disch_distr_norm_var_check <- function(df, site) {
+  pre_pvalue <- shapiro.test(df[df$Site == site & df$PrePost == "Pre", "WkendTotal"])$p.value
+  post_pvalue <- shapiro.test(df[df$Site == site & df$PrePost == "Post", "WkendTotal"])$p.value
+  pre_post_var_pvalue <- var.test(df[df$Site == site & df$PrePost == "Pre", "WkendTotal"], 
+                                      df[df$Site == site & df$PrePost == "Post", "WkendTotal"])$p.value
+  pre_norm_distr <- ifelse(pre_pvalue > 0.05, "Normal Distribution", "Not Normal distribution")
+  post_norm_distr <- ifelse(post_pvalue > 0.05, "Normal Distribution", "Not Normal distribution")
+  pre_post_var_eq <- ifelse(pre_post_var_pvalue > 0.05, "Equal variance", "Not equal variance")
+  
+  print(paste0(site, ": Pre-implementation weekend discharges ", ifelse(pre_norm_distr == "Normal Distribution", "follow a normal distribution", "do not follow a normal distribution")))
+  print(paste0(site, ": Post-implementation weekend discharges ", ifelse(post_norm_distr == "Normal Distribution", "follow a normal distribution", "do not follow a normal distribution")))
+  print(paste0(site, ": Pre- & Post-implementation weekend discharges ", ifelse(pre_post_var_eq == "Equal variance", "have equal variance", "do not have equal variance")))
+  
+  
+  site_stats_list <- list("PreImpl p-value" = pre_pvalue, 
+                          "PreImpl distribution" = pre_norm_distr, 
+                          "PostImpl p-value" = post_pvalue, 
+                          "PostImpl distribution" = post_norm_distr, 
+                          "Pre & Post variance p-value" = pre_post_var_pvalue, 
+                          "Pre & Post variance equality" = pre_post_var_eq)
+  return(site_stats_list)
+}
+
+msh_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSH")
+msq_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSQ")
+msbi_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSBI")
+msb_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSB")
+msw_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSW")
+mssl_weekend_disch_stats_check <- wkend_disch_distr_norm_var_check(pre_post_all_sites, "MSSL")
+
+# Since weekend discharges for all sites pre- and post-implementation follow normal distributions and have equal variances, t-tests can be used to determine significance of differences
+
+# Conduct statistical analysis ------------------------------------
+site_wkend_disch_ttest <- function(df, site) {
+  site_wkend_disch_ttest <- t.test(x = df[df$Site == site & df$PrePost == "Post", "WkendTotal"],
+                                   y = df[df$Site == site & df$PrePost == "Pre", "WkendTotal"],
+                                   alternative = "greater", var.equal = TRUE)
+  print(paste0(site, ": Post-implementation weekend discharges are ", ifelse(site_wkend_disch_ttest$p.value < 0.05, "significantly greater than ", "not significantly greater than "), "pre-implementation weekend discharges"))
+  return(site_wkend_disch_ttest)
+  
+}
+
+msh_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSH")
+msq_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSQ")
+msbi_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSBI")
+msb_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSB")
+msw_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSW")
+mssl_wkend_disch_sign_test <- site_wkend_disch_ttest(pre_post_all_sites, site = "MSSL")
+
+
+site_wkend_percent_ttest <- function(df, site) {
+  site_wkend_percent_ttest <- t.test(x = df[df$Site == site & df$PrePost == "Post", "WkendPercent"],
+                                   y = df[df$Site == site & df$PrePost == "Pre", "WkendPercent"],
+                                   alternative = "greater", var.equal = TRUE)
+  print(paste0(site, ": Post-implementation weekend percentages are ", ifelse(site_wkend_percent_ttest$p.value < 0.05, "significantly greater than ", "not significantly greater than "), "pre-implementation weekend discharges"))
+  return(site_wkend_percent_ttest)
+  
+}
+
+msq_wkend_percent_sign_test2 <- site_wkend_percent_ttest(pre_post_all_sites, site = "MSQ")
+msbi_wkend_percent_sign_test <- site_wkend_percent_ttest(pre_post_all_sites, site = "MSBI")
+msb_wkend_percent_sign_test <- site_wkend_percent_ttest(pre_post_all_sites, site = "MSB")
+msw_wkend_percent_sign_test <- site_wkend_percent_ttest(pre_post_all_sites, site = "MSW")
+mssl_wkend_percent_sign_test <- site_wkend_percent_ttest(pre_post_all_sites, site = "MSSL")
+
+
+
+msq_wkend_percent_pvalue <- t.test(WkendPercent  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSQ", ], alternative = c("greater"))$p.value
+print(paste0("MSQ % Weekend Discharge p-value: ", round(msq_wkend_percent_pvalue, digits = 2), "; ", ifelse(msq_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+
+msbi_wkend_percent_pvalue <- t.test(WkendPercent  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSBI", ], alternative = c("greater"))$p.value
+print(paste0("MSBI % Weekend Discharge p-value: ", round(msbi_wkend_percent_pvalue, digits = 2), "; ", ifelse(msbi_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+
+msb_wkend_percent_pvalue <- t.test(WkendPercent  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSB", ], alternative = c("greater"))$p.value
+print(paste0("MSB % Weekend Discharge p-value: ", round(msb_wkend_percent_pvalue, digits = 2), "; ", ifelse(msb_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+
+msw_wkend_percent_pvalue <- t.test(WkendPercent  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSW", ], alternative = c("greater"))$p.value
+print(paste0("MSW % Weekend Discharge p-value: ", round(msw_wkend_percent_pvalue, digits = 2), "; ", ifelse(msw_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+
+mssl_wkend_percent_pvalue <- t.test(WkendPercent  ~ PrePost, data = pre_post_all_sites[pre_post_all_sites$Site == "MSSL", ], alternative = c("greater"))$p.value
+print(paste0("MSSL % Weekend Discharge p-value: ", round(mssl_wkend_percent_pvalue, digits = 2), "; ", ifelse(mssl_wkend_percent_pvalue < 0.05, "Pre and Post are significantly different", "Pre and Post are not significantly different")))
+
+
+write_xlsx(pre_post_all_sites, path = paste0(graphs_tables_output_location, "\\PrePostDitributions.xlsx"))

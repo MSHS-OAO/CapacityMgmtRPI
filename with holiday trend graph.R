@@ -834,9 +834,9 @@ stacked_bar_multi <- function(site) {
 }
 
 
-
+new_df$check_holiday <- as.factor(new_df$check_holiday)
 weekend_volume_new_targets_multi <- function(site) {
-  ggplot(data = new_df[(new_df$Site == site) & (new_df$WeekNumber >= trends_first_week), ]) +
+  ggplot(data = new_df[(new_df$Site == site) & (new_df$WeekNumber >= trends_first_week), ], aes(x = SatDate, y = TotalDisch)) +
     
     geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
     geom_label(aes(length(SatDate), Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site]), vjust = 0.5, hjust = 0.25, size = 3) +
@@ -845,26 +845,29 @@ weekend_volume_new_targets_multi <- function(site) {
     geom_label(aes(length(SatDate), Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site]),  vjust = 0.5, hjust = 0.25, size = 3) +
     
     geom_line(mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
-    geom_point(mapping = aes(x = SatDate, y = TotalDisch,fill = factor(check_holiday)), shape = 19, size = 1.5) +
+    #geom_point(mapping = aes(x = SatDate, y = TotalDisch) fill = check_holiday), shape = 8, size = 1.5) +
+    geom_point(aes(shape = check_holiday, color = check_holiday), size = 2)+
+    scale_shape_manual(values=c(17, 16))+
+    #scale_color_manual(values=c('#999999','#E69F00'))+
     geom_text(mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = 1, size = 3) +
     
     labs(title = paste(site, "Weekend Discharge Volume"), y = "Discharge Volume") + #, x = "Week Of" +
     theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5, size = 11), 
-          legend.position = "bottom", legend.justification = "center", legend.key.width = unit(.375,"inch"), legend.box.spacing = unit(0, "cm"), 
-          axis.text.x = element_text(angle = 30, hjust = 1), 
+    theme(plot.title = element_text(hjust = 0.5, size = 11),
+          legend.position = "bottom", legend.justification = "center", legend.key.width = unit(.375,"inch"), legend.box.spacing = unit(0, "cm"),
+          axis.text.x = element_text(angle = 30, hjust = 1),
           axis.title.x = element_blank(), axis.title.y = element_text(size = 10)) +
     
     scale_x_discrete(expand = c(0, 0.5, 0, 0.65)) +
-    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0))+
     
     scale_linetype_manual(name = "", values = c("Baseline" = "dashed", "Updated Target" = "solid", "Actual" = "solid"), labels = c("Actual", "Baseline", "Target")) +
-    scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c", "Updated Target" = "black", "Actual" = "#00AEEF", "Holiday Week" = "yellow", "Not a Holiday Week" = "#00AEEF"), labels = c("Actual", "Baseline", "Target")) +
-    guides(linetype = guide_legend(override.aes = list(shape = c(16, NA, NA))))
+    scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c", "Updated Target" = "black", "Actual" = "#00AEEF", "Holiday Week" = "red", "Not a Holiday Week" = "#00AEEF"), labels = c("Actual", "Baseline", "Target", "Holiday Week", "Not a Holiday Week"))
+    #guides(linetype = guide_legend(override.aes = list(shape = c(16, NA, NA))))
   
 }
 
-# weekend_volume_new_targets_multi("MSM")
+weekend_volume_new_targets_multi("MSM")
 
 weekend_percent_multi <- function(site) {
   ggplot(data = weekly_totals[(weekly_totals$Site == site) & (weekly_totals$WeekNumber >= trends_first_week), ]) +

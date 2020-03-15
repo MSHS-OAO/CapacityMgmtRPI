@@ -833,10 +833,10 @@ stacked_bar_multi <- function(site) {
     scale_y_continuous(expand = c(0, 0, 0.1, 0))
 }
 
-# stacked_bar_multi("MSH")
+
 
 weekend_volume_new_targets_multi <- function(site) {
-  ggplot(data = wkend_comb_disch_vol[(wkend_comb_disch_vol$Site == site) & (wkend_comb_disch_vol$WeekNumber >= trends_first_week), ]) +
+  ggplot(data = new_df[(new_df$Site == site) & (new_df$WeekNumber >= trends_first_week), ]) +
     
     geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
     geom_label(aes(length(SatDate), Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site]), vjust = 0.5, hjust = 0.25, size = 3) +
@@ -845,7 +845,7 @@ weekend_volume_new_targets_multi <- function(site) {
     geom_label(aes(length(SatDate), Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site]),  vjust = 0.5, hjust = 0.25, size = 3) +
     
     geom_line(mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
-    geom_point(mapping = aes(x = SatDate, y = TotalDisch, color = "Actual"), size = 1.5) +
+    geom_point(mapping = aes(x = SatDate, y = TotalDisch,fill = factor(check_holiday)), shape = 19, size = 1.5) +
     geom_text(mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = 1, size = 3) +
     
     labs(title = paste(site, "Weekend Discharge Volume"), y = "Discharge Volume") + #, x = "Week Of" +
@@ -859,7 +859,7 @@ weekend_volume_new_targets_multi <- function(site) {
     scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
     
     scale_linetype_manual(name = "", values = c("Baseline" = "dashed", "Updated Target" = "solid", "Actual" = "solid"), labels = c("Actual", "Baseline", "Target")) +
-    scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c", "Updated Target" = "black", "Actual" = "#00AEEF"), labels = c("Actual", "Baseline", "Target")) +
+    scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c", "Updated Target" = "black", "Actual" = "#00AEEF", "Holiday Week" = "yellow", "Not a Holiday Week" = "#00AEEF"), labels = c("Actual", "Baseline", "Target")) +
     guides(linetype = guide_legend(override.aes = list(shape = c(16, NA, NA))))
   
 }

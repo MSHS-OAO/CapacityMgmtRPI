@@ -11,6 +11,7 @@ rm(list = ls())
 #install.packages("stringr")
 #install.packages("formattable")
 #install.packages("ggpubr")
+#install.packages("timeDate")
 
 #Analysis for weekend discharge tracking
 library(readxl)
@@ -24,6 +25,7 @@ library(stringr)
 library(formattable)
 library(scales)
 library(ggpubr)
+library(timeDate)
 
 # Set working directory and select raw data ----------------------------
 getwd()
@@ -475,6 +477,52 @@ weekly_totals <- as.data.frame(site_summary_daily_disch_vol %>%
 weekly_totals$WkendPercent[weekly_totals$WkendPercent == 1] <- NA
 weekly_totals$WkdayAvg[!is.finite(weekly_totals$WkdayAvg)] <- NA
 
+##adding a holiday check column
+with_holidays <- weekly_totals
+
+#years <- 2020
+NYSE_Holidays <- c(holidayNYSE(2019:2020))
+#nofriday <- NYSE_Holidays()
+MSHS_Holidays <- NYSE_Holidays[c(1,2,3,5,6,7,8,9)] #exclude Good Friday index 4
+MSHS_Holidays <- as.Date(MSHS_Holidays)
+#with_holidays_SatFri <- site_daily_disch_vol <- left_join(with_holidays, indiv_dates, by = c("WeekNumber" = "WeekNumber"))
+
+with_holidays_SatFri$SatDate <- as.Date(with_holidays$SatDate,format = "%m/%d/%y")
+
+holidays <- NULL
+startyear <- 2015
+year <- c(2016, 2017, 2018, 2019, 2020)
+# Iterate years:
+for (y in year) {
+  if (y >= startyear)
+    holidays <- c(holidays, as.character(USNewYearsDay(y)))
+  if (y >= startyear)
+    holidays <- c(holidays, as.character(USMLKingsBirthday(y)))
+  if (y > startyear)
+    holidays <- c(holidays, as.character(USPresidentsDay(y)))
+  if (y >= startyear)
+    holidays <- c(holidays, as.character(USMemorialDay(y)))
+  if (y >= startyear)
+    holidays <- c(holidays, as.character(USIndependenceDay(y)))
+  if (y >= startyear)
+    holidays <- c(holidays, as.character(USLaborDay(y)))
+  if (y >= startyear)
+    holidays <- c(holidays, as.character(USThanksgivingDay(y)))
+  if (y >= startyear)
+    holidays <- c(holidays, as.character(USChristmasDay(y)))
+}
+
+
+
+#dates <- ymd(c(MSHS_Holidays))
+#MSHS_Week <- interval(ymd(with_holidays_SatFri$SatDate), ymd(with_holidays_SatFri$FriDate))
+
+
+MSHS_Sats <- floor_date(as.Date(holidays), "week") - 1
+
+with_holidays$check_holiday <- ifelse(as.Date(with_holidays$SatDate,format = "%m/%d/%y") %in% MSHS_Sats, "Holiday Week", "Not Holiday Week")
+
+
 site_weekly_stats_tracker <- function(site) {
   weekly_totals_format2 <- weekly_totals[weekly_totals$Site == site, ]
   weekly_totals_format2$WklyTotal <- as.integer(weekly_totals_format2$WklyTotal)
@@ -594,10 +642,15 @@ ggsave(path = graphs_tables_output_location, file = paste("MSM Stacked Bar DOW",
 # weekend_trend(site = "MSW")
 # weekend_trend(site = "MSM")
 
+new_df <- wkend_comb_disch_vol
+
+new_df$check_holiday <- ifelse(as.Date(new_df$SatDate,format = "%m/%d/%y") %in% MSHS_Sats, "Holiday Week", "Not a Holiday Week")
+
+
 weekend_trend_old_new_targets <- function(site) {
   trends_lookback <- 12
-  trends_first_week <- max(wkend_comb_disch_vol$WeekNumber[wkend_comb_disch_vol$Site == site], na.rm = TRUE) - trends_lookback + 1
-  ggplot(data = wkend_comb_disch_vol[(wkend_comb_disch_vol$Site == site) & (wkend_comb_disch_vol$WeekNumber >= trends_first_week), ]) +
+  trends_first_week <- max(new_df$WeekNumber[wkend_comb_disch_vol$Site == site], na.rm = TRUE) - trends_lookback + 1
+  ggplot(data =new_df[(new_df$Site == site) & (new_df$WeekNumber >= trends_first_week), ]) +
     
     geom_hline(aes(yintercept = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], color = "Baseline", linetype = "Baseline")) +
     geom_text(aes(length(SatDate), Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Weekend Baseline'[Site_Original_Updated_Targets$Site == site]), vjust = -0.5, hjust = -0.5) +
@@ -609,7 +662,7 @@ weekend_trend_old_new_targets <- function(site) {
     geom_text(aes(length(SatDate), Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site], label = Site_Original_Updated_Targets$'Updated Target'[Site_Original_Updated_Targets$Site == site]),  vjust = -0.5, hjust = -0.5) +
     
     geom_line(mapping = aes(x = SatDate, y = TotalDisch, group = 1, color = "Actual", linetype = "Actual"), size = 1) + 
-    geom_point(mapping = aes(x = SatDate, y = TotalDisch), color = "#00AEEF", size = 1.5) +
+    geom_point(mapping = aes(x = SatDate, y = TotalDisch, fill = factor(check_holiday)), shape = 21, size = 1.5) +
     geom_text(mapping = aes(x = SatDate, y = TotalDisch, label = TotalDisch), color = "black", vjust = -0.25, hjust = -0.25) +
     
     labs(title = paste(site, "Weekend Discharges:", trends_lookback, "Week Lookback"), x = "Week Of", y = "Discharge Volume") +
@@ -629,13 +682,15 @@ weekend_trend_old_new_targets <- function(site) {
                           # labels = c("Actual", "Baseline", "Old Target", "New Target")) +
                           labels = c("Actual", "Baseline", "Target")) +
     
+    #scale_fill_manual(values=c("red","green"))+
     scale_color_manual(name = "", values = c("Baseline" = "#8c8c8c",
                                              # "Original Target" = "black",
                                              "Updated Target" = "black",
                                              "Actual" = "#00AEEF"),
                        # labels = c("Actual", "Baseline", "Old Target", "New Target")) +
-                       labels = c("Actual", "Baseline", "Target"))
-    
+                       labels = c("Actual", "Baseline", "Target", "Holiday Week", "Not a Holiday Week"))
+  
+  
 }
 
 weekend_trend_old_new_targets(site = "MSH")
